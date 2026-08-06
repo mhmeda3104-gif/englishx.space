@@ -18,6 +18,9 @@
 
   // ── Auth State ──
   fbAuth.onAuthStateChanged(async user => {
+    // Allow guest mode — skip auth check
+    if (sessionStorage.getItem('guestMode') === 'true') return;
+
     if (!user) {
       sessionStorage.setItem('authRedirect',
         window.location.pathname.split('/').pop() || 'index.html');

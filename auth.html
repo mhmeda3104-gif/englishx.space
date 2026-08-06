@@ -102,7 +102,7 @@
 
     <!-- Guest -->
     <div class="auth-guest">
-      <a href="index.html">Continue as guest →</a>
+      <a href="#" onclick="enterAsGuest()">Continue as guest →</a>
     </div>
 
   </div>
@@ -265,6 +265,12 @@
         'auth/too-many-requests': 'Too many attempts. Please try again later.',
       };
       return errors[code] || 'An error occurred. Please try again.';
+    }
+
+    // ── Guest Mode ──
+    function enterAsGuest() {
+      sessionStorage.setItem('guestMode', 'true');
+      window.location.href = 'index.html';
     }
 
     // Enter key support
