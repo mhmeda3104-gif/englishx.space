@@ -1,7 +1,6 @@
 // =============================================
 // AUTH GUARD + FIREBASE SYNC — Space Academy
 // =============================================
-// Include this script in every HTML page BEFORE app.js
 
 (function () {
   const firebaseConfig = {
@@ -13,25 +12,21 @@
     appId: "1:570756105739:web:69c4b5edd62cc34c56290e"
   };
 
-  // Init Firebase (only once)
   if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-
   window.fbAuth = firebase.auth();
-  window.fbDb = firebase.database();
+  window.fbDb  = firebase.database();
 
-  // ── Auth State Listener ──
+  // ── Auth State ──
   fbAuth.onAuthStateChanged(async user => {
     if (!user) {
-      // Not logged in → redirect to auth page
-      sessionStorage.setItem('authRedirect', window.location.pathname.split('/').pop() || 'index.html');
+      sessionStorage.setItem('authRedirect',
+        window.location.pathname.split('/').pop() || 'index.html');
       window.location.href = 'auth.html';
       return;
     }
-
-    // Store current user globally
     window.currentUser = user;
 
-    // Inject user info into navbar
+    // Inject navbar user info
     injectUserNav(user);
 
     // Load user data from Firebase
@@ -39,48 +34,99 @@
       const snap = await fbDb.ref('users/' + user.uid).once('value');
       if (snap.exists()) {
         const data = snap.val();
-        // Sync AppState when it's ready
-        if (window.AppState) {
-          syncAppState(data);
-        } else {
-          window.__pendingUserData = data;
-        }
+        applyUserData(user, data);
+      } else {
+        // New user — initialize profile only
+        applyUserData(user, null);
       }
     } catch (e) {
-      console.warn('Could not load user data:', e);
+      console.warn('Firebase load error:', e);
+      applyUserData(user, null);
     }
   });
 
-  // ── Sync Firebase data → AppState ──
-  function syncAppState(data) {
-    if (!window.AppState) return;
-    AppState.xp = data.xp || 0;
-    AppState.level = data.level || 1;
-    AppState.streak = data.streak || 0;
-    AppState.lastStudied = data.lastStudied || null;
-    AppState.completedLessons = data.completedLessons || [];
-    AppState.quizScores = data.quizScores || [];
-    AppState.gamesPlayed = data.gamesPlayed || 0;
+  // ── Apply Firebase data → AppState + UI ──
+  function applyUserData(user, data) {
+    // Wait for AppState to be ready
+    function trySync() {
+      if (!window.AppState) { setTimeout(trySync, 50); return; }
 
-    // Refresh UI if function exists
-    if (typeof updateUI === 'function') updateUI();
-    if (typeof renderDashboard === 'function') renderDashboard();
+      if (data) {
+        AppState.xp               = data.xp               || 0;
+        AppState.level            = data.level             || 1;
+        AppState.streak           = data.streak            || 0;
+        AppState.lastStudied      = data.lastStudied       || null;
+        AppState.completedLessons = data.completedLessons  || [];
+        AppState.quizScores       = data.quizScores        || [];
+        AppState.gamesPlayed      = data.gamesPlayed       || 0;
+      }
+
+      // Update AppState UI
+      if (typeof AppState.updateUI === 'function') AppState.updateUI();
+
+      // Update dashboard-specific elements
+      updateDashboardProfile(user, data);
+
+      // Hook into AppState.save() to auto-sync Firebase
+      hookSave();
+
+      // Call dashboard render if available
+      if (typeof updateDashboard === 'function') updateDashboard();
+      if (typeof checkAchievements === 'function') checkAchievements();
+    }
+    trySync();
   }
 
-  // ── Save AppState → Firebase ──
+  // ── Override AppState.save() to also save to Firebase ──
+  function hookSave() {
+    if (!window.AppState || AppState.__fbHooked) return;
+    const _original = AppState.save.bind(AppState);
+    AppState.save = function () {
+      _original();           // keep localStorage
+      saveToFirebase();      // also Firebase
+    };
+    AppState.__fbHooked = true;
+  }
+
+  // ── Save to Firebase ──
   window.saveToFirebase = function () {
     if (!window.currentUser || !window.AppState) return;
     fbDb.ref('users/' + currentUser.uid).update({
-      xp: AppState.xp || 0,
-      level: AppState.level || 1,
-      streak: AppState.streak || 0,
-      lastStudied: AppState.lastStudied || null,
-      completedLessons: AppState.completedLessons || [],
-      quizScores: AppState.quizScores || [],
-      gamesPlayed: AppState.gamesPlayed || 0,
-      lastUpdated: Date.now()
-    }).catch(e => console.warn('Save error:', e));
+      xp:               AppState.xp               || 0,
+      level:            AppState.level             || 1,
+      streak:           AppState.streak            || 0,
+      lastStudied:      AppState.lastStudied       || null,
+      completedLessons: AppState.completedLessons  || [],
+      quizScores:       AppState.quizScores        || [],
+      gamesPlayed:      AppState.gamesPlayed       || 0,
+      lastUpdated:      Date.now()
+    }).catch(e => console.warn('Firebase save error:', e));
   };
+
+  // ── Update Dashboard Profile Card ──
+  function updateDashboardProfile(user, data) {
+    const name = (data && data.name) || user.displayName || user.email.split('@')[0] || 'Learner';
+
+    // Profile name
+    const profileNameEl = document.getElementById('profileName');
+    if (profileNameEl) profileNameEl.textContent = name;
+
+    // Welcome message
+    const mainTitle = document.querySelector('.main-title');
+    if (mainTitle) mainTitle.textContent = `Welcome back, ${name.split(' ')[0]}! 👋`;
+
+    // Avatar
+    const avatarEl = document.getElementById('avatarEl');
+    if (avatarEl) {
+      if (user.photoURL) {
+        avatarEl.innerHTML = `<img src="${user.photoURL}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" alt="${name}">`;
+      } else {
+        const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+        avatarEl.style.cssText = 'background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#fff;border-radius:50%;';
+        avatarEl.textContent = initials;
+      }
+    }
+  }
 
   // ── Logout ──
   window.logoutUser = async function () {
@@ -88,17 +134,25 @@
     window.location.href = 'auth.html';
   };
 
-  // ── Inject User Avatar in Navbar ──
-  function injectUserNav(user) {
-    const navbar = document.querySelector('.navbar');
-    if (!navbar) return;
+  // ── Reset Progress (also clears Firebase) ──
+  window.resetProgressFirebase = function () {
+    if (!window.currentUser) return;
+    fbDb.ref('users/' + currentUser.uid).update({
+      xp: 0, level: 1, streak: 0,
+      lastStudied: null,
+      completedLessons: [],
+      quizScores: [],
+      gamesPlayed: 0
+    });
+  };
 
-    // Remove old user nav if exists
+  // ── Inject Navbar User Avatar ──
+  function injectUserNav(user) {
+    const navLinks = document.querySelector('.nav-links');
+    if (!navLinks) return;
+
     const old = document.getElementById('userNavItem');
     if (old) old.remove();
-
-    const navLinks = navbar.querySelector('.nav-links');
-    if (!navLinks) return;
 
     const li = document.createElement('li');
     li.id = 'userNavItem';
@@ -109,25 +163,17 @@
       : `<div class="user-avatar-initial">${initial}</div>`;
 
     li.innerHTML = `
-      <div style="display:flex;align-items:center;gap:8px">
+      <div style="display:flex;align-items:center;gap:8px;margin-left:8px">
         <span class="user-avatar-btn">
           ${photoHTML}
-          <span style="max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+          <span style="max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px">
             ${user.displayName || user.email.split('@')[0]}
           </span>
         </span>
         <button class="logout-btn" onclick="logoutUser()">Sign Out</button>
-      </div>
-    `;
+      </div>`;
+
     navLinks.appendChild(li);
   }
-
-  // ── Wait for AppState then sync ──
-  document.addEventListener('DOMContentLoaded', () => {
-    if (window.__pendingUserData && window.AppState) {
-      syncAppState(window.__pendingUserData);
-      window.__pendingUserData = null;
-    }
-  });
 
 })();
