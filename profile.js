@@ -118,31 +118,70 @@ async function uploadAvatar(event) {
     return;
   }
   
-  if (file.size > 2 * 1024 * 1024) {
-    if(window.showToast) showToast('Image size must be less than 2MB', 'error');
+  if (file.size > 5 * 1024 * 1024) {
+    if(window.showToast) showToast('Image size must be less than 5MB', 'error');
     return;
   }
 
   try {
-    if(window.showToast) showToast('Uploading image... ⏳', 'info');
+    if(window.showToast) showToast('Processing image... ⏳', 'info');
     
-    const storageRef = firebase.storage().ref();
-    const avatarRef = storageRef.child(`avatars/${currentUser.uid}_${Date.now()}`);
-    
-    const snapshot = await avatarRef.put(file);
-    const downloadURL = await snapshot.ref.getDownloadURL();
-    
-    await currentUser.updateProfile({ photoURL: downloadURL });
-    await userRef.update({ photoURL: downloadURL });
-    
-    const avatarEl = document.getElementById('profilePageAvatar');
-    avatarEl.style.backgroundImage = `url('${downloadURL}')`;
-    avatarEl.textContent = '';
+    // Read the file
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = new Image();
+      img.onload = async function() {
+        // Create canvas to resize image
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 250;
+        const MAX_HEIGHT = 250;
+        let width = img.width;
+        let height = img.height;
 
-    if(window.showToast) showToast('Profile picture updated! 📷', 'success');
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Compress to base64 jpeg
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        
+        try {
+          // Save Base64 to Realtime Database instead of Storage
+          await userRef.update({ photoURL: dataUrl });
+          
+          // Also update Auth profile
+          await currentUser.updateProfile({ photoURL: dataUrl });
+          
+          // Update UI
+          const avatarEl = document.getElementById('profilePageAvatar');
+          avatarEl.style.backgroundImage = `url('${dataUrl}')`;
+          avatarEl.textContent = '';
+          
+          if(window.showToast) showToast('Profile picture updated! 📷', 'success');
+        } catch (dbError) {
+          console.error("DB Save failed:", dbError);
+          if(window.showToast) showToast('Failed to save image!', 'error');
+        }
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
 
   } catch (error) {
     console.error("Upload failed:", error);
-    if(window.showToast) showToast('Upload failed! (Check if Firebase Storage is enabled in console)', 'error');
+    if(window.showToast) showToast('An error occurred processing the image.', 'error');
   }
 }
