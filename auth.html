@@ -248,7 +248,8 @@
         if (!snap.exists()) await createUserData(cred.user, cred.user.displayName);
       } catch (e) {
         setLoading('googleBtn', false);
-        showMessage(getFriendlyError(e.code), 'error');
+        console.error('Google Auth Error:', e);
+        showMessage(getFriendlyError(e.code) + ' (' + e.message + ')', 'error');
       }
     }
 
@@ -264,7 +265,7 @@
         'auth/network-request-failed': 'Network error. Check your connection.',
         'auth/too-many-requests': 'Too many attempts. Please try again later.',
       };
-      return errors[code] || 'An error occurred. Please try again.';
+      return errors[code] || (code + ': ' + (code === 'auth/unauthorized-domain' ? 'Please add this domain to Firebase Authorized Domains.' : 'An error occurred.'));
     }
 
     // ── Guest Mode ──
