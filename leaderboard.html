@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Leaderboard - Space Academy</title>
+  <meta name="description" content="See where you stand among all Space Academy members!">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="dashboard.css">
+  <link rel="stylesheet" href="auth.css">
+  <style>
+    .leaderboard-container {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      padding: 30px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .leaderboard-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    .leaderboard-header h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: var(--text-color);
+      margin-bottom: 10px;
+    }
+    
+    .leaderboard-header p {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+    }
+
+    .leaderboard-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .leaderboard-item {
+      display: flex;
+      align-items: center;
+      background: var(--bg-color);
+      border: 1px solid var(--border-color);
+      padding: 15px 20px;
+      border-radius: 16px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .leaderboard-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .rank-badge {
+      font-size: 1.2rem;
+      font-weight: bold;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      margin-right: 15px;
+      color: var(--text-color);
+      flex-shrink: 0;
+    }
+    
+    .rank-1 { background: linear-gradient(135deg, #FFD700, #FDB931); color: #000; border: none; }
+    .rank-2 { background: linear-gradient(135deg, #E0E0E0, #BDBDBD); color: #000; border: none; }
+    .rank-3 { background: linear-gradient(135deg, #CD7F32, #A0522D); color: #fff; border: none; }
+
+    .member-avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background-color: var(--primary-color);
+      background-size: cover;
+      background-position: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-right: 15px;
+      flex-shrink: 0;
+      border: 2px solid var(--border-color);
+    }
+
+    .member-info {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .member-name {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--text-color);
+      margin-bottom: 2px;
+    }
+
+    .member-username {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .member-stats {
+      display: flex;
+      gap: 15px;
+      text-align: right;
+    }
+    
+    .stat-pill {
+      background: var(--card-bg);
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      border: 1px solid var(--border-color);
+    }
+    
+    .stat-xp { color: var(--primary-color); }
+    .stat-level { color: var(--secondary-color); }
+
+    /* Skeleton loader */
+    .skeleton {
+      background: linear-gradient(90deg, var(--bg-color) 25%, var(--border-color) 50%, var(--bg-color) 75%);
+      background-size: 200% 100%;
+      animation: loading 1.5s infinite;
+      border-radius: 4px;
+    }
+    @keyframes loading {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    
+    .sk-avatar { width: 50px; height: 50px; border-radius: 50%; margin-right: 15px; }
+    .sk-text { height: 15px; width: 120px; margin-bottom: 8px; }
+    .sk-text-sm { height: 12px; width: 80px; }
+    .sk-pill { height: 30px; width: 60px; border-radius: 20px; }
+
+  </style>
+</head>
+<body class="dashboard-body">
+
+  <nav class="navbar">
+    <a href="index.html" class="navbar-brand">
+      <div class="brand-icon"><img src="logo.png" alt="Space Academy"></div>
+      <span class="brand-text">Space Academy</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="dashboard.html">Dashboard</a></li>
+      <li><a href="lessons.html">Lessons</a></li>
+      <li><a href="quiz.html">Quiz</a></li>
+      <li><a href="game.html">Games</a></li>
+      <li><a href="leaderboard.html" class="active">Leaderboard</a></li>
+      <li><a href="profile.html">Profile</a></li>
+    </ul>
+    <button id="themeToggleBtn" class="theme-toggle-btn" aria-label="Toggle Theme" onclick="toggleTheme()">☀️</button>
+  </nav>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <div class="container" style="padding-top: 100px; padding-bottom: 50px;">
+    <div class="leaderboard-container">
+      
+      <div class="leaderboard-header">
+        <h1>🏆 Hall of Fame</h1>
+        <p>See where you stand among the top space explorers!</p>
+      </div>
+
+      <div class="leaderboard-list" id="leaderboardList">
+        <!-- Skeleton loaders initially -->
+        <div class="leaderboard-item">
+          <div class="rank-badge skeleton"></div>
+          <div class="sk-avatar skeleton"></div>
+          <div class="member-info">
+            <div class="sk-text skeleton"></div>
+            <div class="sk-text-sm skeleton"></div>
+          </div>
+          <div class="member-stats">
+            <div class="sk-pill skeleton"></div>
+            <div class="sk-pill skeleton"></div>
+          </div>
+        </div>
+        <div class="leaderboard-item">
+          <div class="rank-badge skeleton"></div>
+          <div class="sk-avatar skeleton"></div>
+          <div class="member-info">
+            <div class="sk-text skeleton"></div>
+            <div class="sk-text-sm skeleton"></div>
+          </div>
+          <div class="member-stats">
+            <div class="sk-pill skeleton"></div>
+            <div class="sk-pill skeleton"></div>
+          </div>
+        </div>
+        <div class="leaderboard-item">
+          <div class="rank-badge skeleton"></div>
+          <div class="sk-avatar skeleton"></div>
+          <div class="member-info">
+            <div class="sk-text skeleton"></div>
+            <div class="sk-text-sm skeleton"></div>
+          </div>
+          <div class="member-stats">
+            <div class="sk-pill skeleton"></div>
+            <div class="sk-pill skeleton"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <script src="auth-guard.js"></script>
+  <script src="app.js"></script>
+  <script src="leaderboard.js"></script>
+</body>
+</html>
