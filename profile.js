@@ -108,3 +108,41 @@ function logoutUser() {
     console.error("Logout error:", error);
   });
 }
+
+async function uploadAvatar(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  if (!file.type.startsWith('image/')) {
+    if(window.showToast) showToast('Please select an image file', 'error');
+    return;
+  }
+  
+  if (file.size > 2 * 1024 * 1024) {
+    if(window.showToast) showToast('Image size must be less than 2MB', 'error');
+    return;
+  }
+
+  try {
+    if(window.showToast) showToast('Uploading image... ⏳', 'info');
+    
+    const storageRef = firebase.storage().ref();
+    const avatarRef = storageRef.child(`avatars/${currentUser.uid}_${Date.now()}`);
+    
+    const snapshot = await avatarRef.put(file);
+    const downloadURL = await snapshot.ref.getDownloadURL();
+    
+    await currentUser.updateProfile({ photoURL: downloadURL });
+    await userRef.update({ photoURL: downloadURL });
+    
+    const avatarEl = document.getElementById('profilePageAvatar');
+    avatarEl.style.backgroundImage = `url('${downloadURL}')`;
+    avatarEl.textContent = '';
+
+    if(window.showToast) showToast('Profile picture updated! 📷', 'success');
+
+  } catch (error) {
+    console.error("Upload failed:", error);
+    if(window.showToast) showToast('Upload failed! (Check if Firebase Storage is enabled in console)', 'error');
+  }
+}
