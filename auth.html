@@ -193,6 +193,7 @@
     function createUserData(user, name) {
       return db.ref('users/' + user.uid).set({
         name: name || user.displayName || 'Space Learner',
+        username: 'user_' + Date.now().toString().slice(-6),
         email: user.email,
         photoURL: user.photoURL || '',
         xp: 0, level: 1, streak: 0,

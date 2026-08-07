@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Profile - Space Academy</title>
+  <meta name="description" content="View and edit your Space Academy profile.">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="dashboard.css">
+  <link rel="stylesheet" href="auth.css">
+  <style>
+    .profile-page-container {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    .profile-stats-row .stat-box {
+      border: 1px solid var(--border-color);
+    }
+  </style>
+</head>
+<body class="dashboard-body">
+
+  <nav class="navbar">
+    <a href="index.html" class="navbar-brand">
+      <div class="brand-icon"><img src="logo.png" alt="Space Academy"></div>
+      <span class="brand-text">Space Academy</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="dashboard.html">Dashboard</a></li>
+      <li><a href="lessons.html">Lessons</a></li>
+      <li><a href="quiz.html">Quiz</a></li>
+      <li><a href="game.html">Games</a></li>
+      <li><a href="profile.html">Profile</a></li>
+    </ul>
+    <button id="themeToggleBtn" class="theme-toggle-btn" aria-label="Toggle Theme" onclick="toggleTheme()">☀️</button>
+  </nav>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <div class="container" style="padding-top: 100px; padding-bottom: 50px;">
+    <div class="profile-page-container card" style="max-width: 600px; margin: 0 auto; padding: 40px; text-align: center;">
+      
+      <!-- Avatar Section -->
+      <div class="profile-avatar-wrap" style="position: relative; width: 120px; height: 120px; margin: 0 auto 20px;">
+        <div class="avatar-ring" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; border-radius: 50%; padding: 4px; background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));">
+          <div class="avatar" id="profilePageAvatar" style="font-size: 4rem; width: 100%; height: 100%; border-radius: 50%; display: flex; align-items: center; justify-content: center; background-color: var(--bg-color); background-size: cover; background-position: center; overflow: hidden;">👤</div>
+        </div>
+      </div>
+
+      <h1 class="main-title" id="profilePageName" style="margin-bottom: 5px;">Loading...</h1>
+      <p class="text-muted" id="profilePageUsername" style="font-size: 1.1rem; margin-bottom: 20px;">@loading</p>
+
+      <!-- Stats summary -->
+      <div class="profile-stats-row grid-3" style="margin-bottom: 30px; gap: 15px;">
+        <div class="stat-box" style="background: var(--bg-color); padding: 15px; border-radius: 12px;">
+          <div style="font-size: 1.5rem; font-weight: bold; color: var(--primary-color);" id="profilePageXP">0</div>
+          <div style="font-size: 0.9rem; color: var(--text-muted);">Total XP</div>
+        </div>
+        <div class="stat-box" style="background: var(--bg-color); padding: 15px; border-radius: 12px;">
+          <div style="font-size: 1.5rem; font-weight: bold; color: var(--secondary-color);" id="profilePageLevel">1</div>
+          <div style="font-size: 0.9rem; color: var(--text-muted);">Level</div>
+        </div>
+        <div class="stat-box" style="background: var(--bg-color); padding: 15px; border-radius: 12px;">
+          <div style="font-size: 1.5rem; font-weight: bold; color: var(--accent-color);" id="profilePageStreak">0</div>
+          <div style="font-size: 0.9rem; color: var(--text-muted);">Day Streak</div>
+        </div>
+      </div>
+
+      <!-- Edit Form -->
+      <div class="edit-profile-form" style="text-align: left; background: var(--bg-color); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color);">
+        <h3 style="margin-bottom: 15px;">Edit Details</h3>
+        
+        <div class="form-group" style="margin-bottom: 15px;">
+          <label class="form-label" style="display: block; margin-bottom: 5px;">Full Name</label>
+          <input type="text" id="editNameInput" class="auth-input" style="width: 100%; border: 1px solid var(--border-color); background: var(--card-bg);" placeholder="Your Name">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 15px;">
+          <label class="form-label" style="display: block; margin-bottom: 5px;">Username</label>
+          <input type="text" id="editUsernameInput" class="auth-input" style="width: 100%; border: 1px solid var(--border-color); background: var(--card-bg);" placeholder="username">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label class="form-label" style="display: block; margin-bottom: 5px;">User ID (Read Only)</label>
+          <input type="text" id="editUserId" class="auth-input" style="width: 100%; border: 1px solid var(--border-color); background: var(--card-bg); opacity: 0.6; cursor: not-allowed;" readonly>
+        </div>
+
+        <button class="btn btn-primary" id="saveProfileBtn" style="width: 100%; justify-content: center;" onclick="saveProfileChanges()">Save Changes</button>
+      </div>
+      
+      <div style="margin-top: 30px;">
+        <button class="btn btn-ghost" style="color: #ef4444; width: 100%; justify-content: center; border: 1px solid #ef444455;" onclick="logoutUser()">Log Out 🚪</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <script src="auth-guard.js"></script>
+  <script src="app.js"></script>
+  <script src="profile.js"></script>
+</body>
+</html>
