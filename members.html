@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Leaderboard - Space Academy</title>
+  <title>Members - Space Academy</title>
   <meta name="description" content="See where you stand among all Space Academy members!">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="dashboard.css">
   <link rel="stylesheet" href="auth.css">
   <style>
-    .leaderboard-container {
+    .members-container {
       background: var(--card-bg);
       border: 1px solid var(--border-color);
       border-radius: 24px;
@@ -19,30 +19,30 @@
       margin: 0 auto;
     }
     
-    .leaderboard-header {
+    .members-header {
       text-align: center;
       margin-bottom: 30px;
     }
     
-    .leaderboard-header h1 {
+    .members-header h1 {
       font-size: 2.2rem;
       font-weight: 700;
       color: var(--text-color);
       margin-bottom: 10px;
     }
     
-    .leaderboard-header p {
+    .members-header p {
       color: var(--text-muted);
       font-size: 1.1rem;
     }
 
-    .leaderboard-list {
+    .members-list {
       display: flex;
       flex-direction: column;
       gap: 12px;
     }
 
-    .leaderboard-item {
+    .members-item {
       display: flex;
       align-items: center;
       background: var(--bg-color);
@@ -52,30 +52,10 @@
       transition: transform 0.2s, box-shadow 0.2s;
     }
     
-    .leaderboard-item:hover {
+    .members-item:hover {
       transform: translateY(-2px);
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
-
-    .rank-badge {
-      font-size: 1.2rem;
-      font-weight: bold;
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-      background: var(--card-bg);
-      border: 2px solid var(--border-color);
-      margin-right: 15px;
-      color: var(--text-color);
-      flex-shrink: 0;
-    }
-    
-    .rank-1 { background: linear-gradient(135deg, #FFD700, #FDB931); color: #000; border: none; }
-    .rank-2 { background: linear-gradient(135deg, #E0E0E0, #BDBDBD); color: #000; border: none; }
-    .rank-3 { background: linear-gradient(135deg, #CD7F32, #A0522D); color: #fff; border: none; }
 
     .member-avatar {
       width: 50px;
@@ -161,7 +141,7 @@
       <li><a href="lessons.html">Lessons</a></li>
       <li><a href="quiz.html">Quiz</a></li>
       <li><a href="game.html">Games</a></li>
-      <li><a href="leaderboard.html" class="active">Leaderboard</a></li>
+      <li><a href="members.html" class="active">Members</a></li>
       <li><a href="profile.html">Profile</a></li>
     </ul>
     <button id="themeToggleBtn" class="theme-toggle-btn" aria-label="Toggle Theme" onclick="toggleTheme()">☀️</button>
@@ -170,17 +150,16 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <div class="container" style="padding-top: 100px; padding-bottom: 50px;">
-    <div class="leaderboard-container">
+    <div class="members-container">
       
-      <div class="leaderboard-header">
-        <h1>🏆 Hall of Fame</h1>
-        <p>See where you stand among the top space explorers!</p>
+      <div class="members-header">
+        <h1>👥 Community</h1>
+        <p>Meet other learners on Space Academy!</p>
       </div>
 
-      <div class="leaderboard-list" id="leaderboardList">
+      <div class="members-list" id="membersList">
         <!-- Skeleton loaders initially -->
-        <div class="leaderboard-item">
-          <div class="rank-badge skeleton"></div>
+        <div class="members-item">
           <div class="sk-avatar skeleton"></div>
           <div class="member-info">
             <div class="sk-text skeleton"></div>
@@ -191,8 +170,7 @@
             <div class="sk-pill skeleton"></div>
           </div>
         </div>
-        <div class="leaderboard-item">
-          <div class="rank-badge skeleton"></div>
+        <div class="members-item">
           <div class="sk-avatar skeleton"></div>
           <div class="member-info">
             <div class="sk-text skeleton"></div>
@@ -203,8 +181,7 @@
             <div class="sk-pill skeleton"></div>
           </div>
         </div>
-        <div class="leaderboard-item">
-          <div class="rank-badge skeleton"></div>
+        <div class="members-item">
           <div class="sk-avatar skeleton"></div>
           <div class="member-info">
             <div class="sk-text skeleton"></div>
@@ -227,6 +204,6 @@
 
   <script src="auth-guard.js"></script>
   <script src="app.js"></script>
-  <script src="leaderboard.js"></script>
+  <script src="members.js"></script>
 </body>
 </html>

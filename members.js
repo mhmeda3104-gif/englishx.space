@@ -49,13 +49,13 @@ async function fetchLeaderboard() {
 
   } catch (error) {
     console.error("Error fetching leaderboard:", error);
-    const listEl = document.getElementById('leaderboardList');
-    listEl.innerHTML = `<div style="text-align: center; color: #ef4444; padding: 20px;">Failed to load leaderboard. Please try again later.</div>`;
+    const listEl = document.getElementById('membersList');
+    listEl.innerHTML = `<div style="text-align: center; color: #ef4444; padding: 20px;">Failed to load members. Please try again later.</div>`;
   }
 }
 
 function renderLeaderboard(members) {
-  const listEl = document.getElementById('leaderboardList');
+  const listEl = document.getElementById('membersList');
   listEl.innerHTML = ''; // Clear skeletons
 
   if (members.length === 0) {
@@ -63,13 +63,7 @@ function renderLeaderboard(members) {
     return;
   }
 
-  members.forEach((member, index) => {
-    const rank = index + 1;
-    let rankBadgeClass = '';
-    if (rank === 1) rankBadgeClass = 'rank-1';
-    else if (rank === 2) rankBadgeClass = 'rank-2';
-    else if (rank === 3) rankBadgeClass = 'rank-3';
-
+  members.forEach((member) => {
     let avatarStyle = '';
     let avatarContent = '👤';
     if (member.photoURL) {
@@ -80,8 +74,7 @@ function renderLeaderboard(members) {
     const isCurrentUser = (window.currentUser && window.currentUser.uid === member.uid) ? 'border: 2px solid var(--primary-color); background: rgba(0,255,136,0.05);' : '';
 
     const itemHTML = `
-      <div class="leaderboard-item" style="${isCurrentUser}">
-        <div class="rank-badge ${rankBadgeClass}">#${rank}</div>
+      <div class="members-item" style="${isCurrentUser}">
         <div class="member-avatar" style="${avatarStyle}">${avatarContent}</div>
         <div class="member-info">
           <div class="member-name">${escapeHTML(member.name)} ${isCurrentUser ? '(You)' : ''}</div>
@@ -99,7 +92,7 @@ function renderLeaderboard(members) {
 }
 
 function renderEmptyState() {
-  const listEl = document.getElementById('leaderboardList');
+  const listEl = document.getElementById('membersList');
   listEl.innerHTML = `
     <div style="text-align: center; padding: 40px; color: var(--text-muted);">
       <div style="font-size: 3rem; margin-bottom: 15px;">🌌</div>
