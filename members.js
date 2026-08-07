@@ -1,6 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-  // Setup theme listener
-  setupTheme();
+  // Theme is handled by app.js initTheme()
 
   // We need to wait for Firebase to initialize before fetching users
   // auth-guard.js might be checking auth state, but we don't strictly need the user to be logged in to view the leaderboard if guest mode is allowed.
