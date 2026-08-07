@@ -40,62 +40,65 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <div class="container" style="padding-top: 100px; padding-bottom: 50px;">
-    <div class="profile-page-container card" style="max-width: 600px; margin: 0 auto; padding: 40px; text-align: center;">
+    <div class="profile-page-container card" style="max-width: 600px; margin: 0 auto; padding: 25px 30px; text-align: left; background: var(--card-bg); border-radius: 24px; border: 1px solid var(--border-color);">
       
-      <!-- Avatar Section -->
-      <div class="profile-avatar-wrap" style="position: relative; width: 120px; height: 120px; margin: 0 auto 20px; cursor: pointer;" onclick="document.getElementById('avatarUpload').click()" title="Change Profile Picture">
-        <div class="avatar-ring" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; border-radius: 50%; padding: 4px; background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));">
-          <div class="avatar" id="profilePageAvatar" style="font-size: 4rem; width: 100%; height: 100%; border-radius: 50%; display: flex; align-items: center; justify-content: center; background-color: var(--bg-color); background-size: cover; background-position: center; overflow: hidden;">👤</div>
+      <!-- Threads-style Header -->
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+        <!-- Left Info -->
+        <div>
+          <h1 class="main-title" id="profilePageName" style="margin-bottom: 5px; font-size: 1.6rem; font-weight: 700; color: var(--text-color);">Loading...</h1>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <p id="profilePageUsername" style="font-size: 1rem; margin: 0; font-weight: 500; color: var(--text-color);">loading</p>
+            <span style="background: var(--bg-color); padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; color: var(--text-muted); font-weight: 500;">englishx.space</span>
+          </div>
         </div>
-        <div style="position: absolute; bottom: 0; right: 0; background: var(--primary-color); border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">📷</div>
+        
+        <!-- Right Avatar -->
+        <div class="profile-avatar-wrap" style="position: relative; width: 80px; height: 80px; cursor: pointer; flex-shrink: 0;" onclick="document.getElementById('avatarUpload').click()" title="Change Profile Picture">
+          <div class="avatar" id="profilePageAvatar" style="font-size: 2.5rem; width: 100%; height: 100%; border-radius: 50%; display: flex; align-items: center; justify-content: center; background-color: var(--bg-color); background-size: cover; background-position: center; overflow: hidden; border: 1px solid var(--border-color);">👤</div>
+          <div style="position: absolute; bottom: 0; right: 0; background: var(--card-bg); border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border-color); font-size: 0.8rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">➕</div>
+        </div>
+        <input type="file" id="avatarUpload" accept="image/*" style="display: none;" onchange="uploadAvatar(event)">
       </div>
-      <input type="file" id="avatarUpload" accept="image/*" style="display: none;" onchange="uploadAvatar(event)">
-
-      <h1 class="main-title" id="profilePageName" style="margin-bottom: 5px;">Loading...</h1>
-      <p class="text-muted" id="profilePageUsername" style="font-size: 1.1rem; margin-bottom: 20px;">@loading</p>
 
       <!-- Stats summary -->
-      <div class="profile-stats-row grid-3" style="margin-bottom: 30px; gap: 15px;">
-        <div class="stat-box" style="background: var(--bg-color); padding: 15px; border-radius: 12px;">
-          <div style="font-size: 1.5rem; font-weight: bold; color: var(--primary-color);" id="profilePageXP">0</div>
-          <div style="font-size: 0.9rem; color: var(--text-muted);">Total XP</div>
-        </div>
-        <div class="stat-box" style="background: var(--bg-color); padding: 15px; border-radius: 12px;">
-          <div style="font-size: 1.5rem; font-weight: bold; color: var(--secondary-color);" id="profilePageLevel">1</div>
-          <div style="font-size: 0.9rem; color: var(--text-muted);">Level</div>
-        </div>
-        <div class="stat-box" style="background: var(--bg-color); padding: 15px; border-radius: 12px;">
-          <div style="font-size: 1.5rem; font-weight: bold; color: var(--accent-color);" id="profilePageStreak">0</div>
-          <div style="font-size: 0.9rem; color: var(--text-muted);">Day Streak</div>
-        </div>
+      <div style="display: flex; gap: 15px; margin-bottom: 25px; font-size: 0.95rem; color: var(--text-muted);">
+        <div><span id="profilePageXP" style="font-weight: 600; color: var(--text-color);">0</span> XP</div>
+        <div><span id="profilePageLevel" style="font-weight: 600; color: var(--text-color);">1</span> Level</div>
+        <div><span id="profilePageStreak" style="font-weight: 600; color: var(--text-color);">0</span> Day Streak</div>
       </div>
 
-      <!-- Edit Form -->
-      <div class="edit-profile-form" style="text-align: left; background: var(--bg-color); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color);">
-        <h3 style="margin-bottom: 15px;">Edit Details</h3>
+      <!-- Action Buttons -->
+      <div style="display: flex; gap: 10px; margin-bottom: 25px;">
+        <button class="btn btn-ghost" style="flex: 1; border: 1px solid var(--border-color); border-radius: 12px; padding: 8px; font-weight: 600; background: transparent; color: var(--text-color);" onclick="document.getElementById('editProfileForm').style.display = document.getElementById('editProfileForm').style.display === 'none' ? 'block' : 'none'">Edit profile</button>
+        <button class="btn btn-ghost" style="flex: 1; border: 1px solid var(--border-color); border-radius: 12px; padding: 8px; font-weight: 600; background: transparent; color: var(--text-color);">Share profile</button>
+      </div>
+
+      <!-- Edit Form (Hidden by default) -->
+      <div id="editProfileForm" class="edit-profile-form" style="display: none; text-align: left; background: var(--bg-color); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 25px;">
+        <h3 style="margin-bottom: 15px; font-size: 1.1rem;">Edit Details</h3>
         
         <div class="form-group" style="margin-bottom: 15px;">
-          <label class="form-label" style="display: block; margin-bottom: 5px;">Full Name</label>
-          <input type="text" id="editNameInput" class="auth-input" style="width: 100%; border: 1px solid var(--border-color); background: var(--card-bg);" placeholder="Your Name">
+          <label class="form-label" style="display: block; margin-bottom: 5px; font-size: 0.9rem;">Full Name</label>
+          <input type="text" id="editNameInput" class="auth-input" style="width: 100%; border: 1px solid var(--border-color); background: var(--card-bg); padding: 10px; border-radius: 8px;" placeholder="Your Name">
         </div>
 
         <div class="form-group" style="margin-bottom: 15px;">
-          <label class="form-label" style="display: block; margin-bottom: 5px;">Username</label>
-          <input type="text" id="editUsernameInput" class="auth-input" style="width: 100%; border: 1px solid var(--border-color); background: var(--card-bg);" placeholder="username">
+          <label class="form-label" style="display: block; margin-bottom: 5px; font-size: 0.9rem;">Username</label>
+          <input type="text" id="editUsernameInput" class="auth-input" style="width: 100%; border: 1px solid var(--border-color); background: var(--card-bg); padding: 10px; border-radius: 8px;" placeholder="username">
         </div>
 
         <div class="form-group" style="margin-bottom: 20px;">
-          <label class="form-label" style="display: block; margin-bottom: 5px;">User ID (Read Only)</label>
-          <input type="text" id="editUserId" class="auth-input" style="width: 100%; border: 1px solid var(--border-color); background: var(--card-bg); opacity: 0.6; cursor: not-allowed;" readonly>
+          <label class="form-label" style="display: block; margin-bottom: 5px; font-size: 0.9rem;">User ID (Read Only)</label>
+          <input type="text" id="editUserId" class="auth-input" style="width: 100%; border: 1px solid var(--border-color); background: var(--card-bg); padding: 10px; border-radius: 8px; opacity: 0.6; cursor: not-allowed;" readonly>
         </div>
 
-        <button class="btn btn-primary" id="saveProfileBtn" style="width: 100%; justify-content: center;" onclick="saveProfileChanges()">Save Changes</button>
+        <button class="btn btn-primary" id="saveProfileBtn" style="width: 100%; justify-content: center; border-radius: 10px;" onclick="saveProfileChanges()">Save Changes</button>
       </div>
       
-      <div style="margin-top: 30px;">
-        <button class="btn btn-ghost" style="color: #ef4444; width: 100%; justify-content: center; border: 1px solid #ef444455;" onclick="logoutUser()">Log Out 🚪</button>
+      <div style="padding-top: 15px; border-top: 1px solid var(--border-color); text-align: center;">
+        <button class="btn btn-ghost" style="color: #ef4444; width: 100%; justify-content: center; font-weight: 600; background: transparent; padding: 10px;" onclick="logoutUser()">Log out</button>
       </div>
-
     </div>
   </div>
 
