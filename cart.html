@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ESTL - Shopping Cart</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="auth.css">
+  <style>
+    .cart-grid {
+      display: grid;
+      grid-template-columns: 1fr 350px;
+      gap: 32px;
+      margin-top: 40px;
+    }
+    .cart-items {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .cart-item {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 20px;
+    }
+    .cart-item-icon {
+      font-size: 40px;
+      background: var(--bg-secondary);
+      width: 80px;
+      height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-sm);
+    }
+    .cart-item-info {
+      flex: 1;
+    }
+    .cart-item-title {
+      font-weight: 700;
+      font-size: 16px;
+    }
+    .cart-item-price {
+      color: var(--primary-light);
+      font-weight: 600;
+      margin-top: 4px;
+    }
+    .cart-item-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .qty-btn {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      width: 32px;
+      height: 32px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .qty-btn:hover { background: var(--border); }
+    .remove-btn {
+      color: var(--danger);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      padding: 8px;
+    }
+    .summary-card {
+      position: sticky;
+      top: 100px;
+    }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      font-size: 15px;
+    }
+    .summary-total {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      font-size: 20px;
+      font-weight: 800;
+    }
+    .empty-cart {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+    @media (max-width: 900px) {
+      .cart-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar" id="navbar">
+    <a href="index.html" class="navbar-brand">
+      <div class="brand-icon"><img src="logo.png" alt="ESTL Logo"></div>
+      <span class="brand-text">ESTL Tech</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="shop.html">Shop Components</a></li>
+      <li><a href="blog.html">Tutorials</a></li>
+      <li><a href="cart.html" class="active">Cart (<span id="cartCount">0</span>)</a></li>
+      <li><a href="profile.html">Profile</a></li>
+    </ul>
+    <button id="themeToggleBtn" class="theme-toggle-btn" aria-label="Toggle Theme" onclick="toggleTheme()">☀️</button>
+  </nav>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <section class="section" style="padding-top: 120px; min-height: 80vh;">
+    <div class="container">
+      <h1 class="section-title" style="text-align: left;">Shopping <span class="gradient-text">Cart</span></h1>
+      
+      <div class="cart-grid">
+        <div class="cart-items" id="cartItems">
+          <!-- Dynamic Cart Items -->
+        </div>
+        
+        <div>
+          <div class="card summary-card">
+            <h3>Order Summary</h3>
+            <div style="margin-top:20px;">
+              <div class="summary-row">
+                <span>Subtotal</span>
+                <span id="subtotalPrice">$0.00</span>
+              </div>
+              <div class="summary-row">
+                <span>Shipping</span>
+                <span>$5.00</span>
+              </div>
+              <div class="summary-total">
+                <span>Total</span>
+                <span id="totalPrice" class="gradient-text">$0.00</span>
+              </div>
+              <button class="btn btn-primary" style="width: 100%; margin-top: 24px;" onclick="checkout()">Proceed to Checkout</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="auth-guard.js"></script>
+  <script src="app.js"></script>
+  <script>
+    function renderCart() {
+      const cart = JSON.parse(localStorage.getItem('estl_cart') || '[]');
+      const container = document.getElementById('cartItems');
+      
+      let total = 0;
+      let count = 0;
+      
+      if(cart.length === 0) {
+        container.innerHTML = `
+          <div class="card empty-cart">
+            <div style="font-size:48px; margin-bottom:16px;">🛒</div>
+            <h3>Your cart is empty</h3>
+            <p style="margin-top:8px;">Looks like you haven't added any components yet.</p>
+            <a href="shop.html" class="btn btn-accent" style="margin-top:20px;">Return to Shop</a>
+          </div>
+        `;
+        document.getElementById('subtotalPrice').innerText = '$0.00';
+        document.getElementById('totalPrice').innerText = '$0.00';
+      } else {
+        container.innerHTML = '';
+        cart.forEach(item => {
+          total += (item.price * item.qty);
+          count += item.qty;
+          container.innerHTML += `
+            <div class="card cart-item">
+              <div class="cart-item-icon">${item.emoji}</div>
+              <div class="cart-item-info">
+                <div class="cart-item-title">${item.name}</div>
+                <div class="cart-item-price">$${item.price.toFixed(2)}</div>
+              </div>
+              <div class="cart-item-actions">
+                <button class="qty-btn" onclick="updateQty('${item.id}', -1)">-</button>
+                <span style="font-weight:600; width:20px; text-align:center;">${item.qty}</span>
+                <button class="qty-btn" onclick="updateQty('${item.id}', 1)">+</button>
+                <button class="remove-btn" onclick="removeItem('${item.id}')">Remove</button>
+              </div>
+            </div>
+          `;
+        });
+        document.getElementById('subtotalPrice').innerText = '$' + total.toFixed(2);
+        document.getElementById('totalPrice').innerText = '$' + (total + 5).toFixed(2);
+      }
+      
+      const countEl = document.getElementById('cartCount');
+      if(countEl) countEl.innerText = count;
+    }
+
+    function updateQty(id, delta) {
+      let cart = JSON.parse(localStorage.getItem('estl_cart') || '[]');
+      const item = cart.find(x => x.id === id);
+      if(item) {
+        item.qty += delta;
+        if(item.qty <= 0) {
+          removeItem(id);
+          return;
+        }
+        localStorage.setItem('estl_cart', JSON.stringify(cart));
+        renderCart();
+      }
+    }
+
+    function removeItem(id) {
+      let cart = JSON.parse(localStorage.getItem('estl_cart') || '[]');
+      cart = cart.filter(x => x.id !== id);
+      localStorage.setItem('estl_cart', JSON.stringify(cart));
+      renderCart();
+      showToast("Item removed from cart", "info");
+    }
+
+    function checkout() {
+      let cart = JSON.parse(localStorage.getItem('estl_cart') || '[]');
+      if(cart.length === 0) return showToast("Your cart is empty!", "warning");
+      
+      // Save order to Firebase
+      if(currentUser) {
+        const orderId = Date.now().toString();
+        const total = cart.reduce((s,i)=>s+(i.price*i.qty), 0) + 5;
+        
+        firebase.database().ref(`users/${currentUser.uid}/orders/${orderId}`).set({
+          date: new Date().toISOString(),
+          items: cart,
+          total: total,
+          status: 'Processing'
+        }).then(() => {
+          localStorage.removeItem('estl_cart');
+          renderCart();
+          showToast("Order placed successfully! 🚀", "success");
+          setTimeout(() => window.location.href = "profile.html", 2000);
+        });
+      } else {
+        showToast("Please login to checkout", "error");
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', renderCart);
+  </script>
+</body>
+</html>

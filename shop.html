@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ESTL - Shop Components</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="auth.css">
+  <style>
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 24px;
+      margin-top: 40px;
+    }
+    .product-card {
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+      overflow: hidden;
+    }
+    .product-img-wrap {
+      background: var(--bg-secondary);
+      padding: 40px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 64px;
+      border-bottom: 1px solid var(--border);
+    }
+    .product-info {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+    .product-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .product-desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+      flex: 1;
+    }
+    .product-price-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .product-price {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--primary-light);
+    }
+    .filters {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+      flex-wrap: wrap;
+    }
+    .filter-btn {
+      padding: 8px 16px;
+      border-radius: 999px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: var(--transition);
+    }
+    .filter-btn.active, .filter-btn:hover {
+      background: rgba(0, 255, 157, 0.1);
+      border-color: var(--primary);
+      color: var(--primary-light);
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar" id="navbar">
+    <a href="index.html" class="navbar-brand">
+      <div class="brand-icon"><img src="logo.png" alt="ESTL Logo"></div>
+      <span class="brand-text">ESTL Tech</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="shop.html" class="active">Shop Components</a></li>
+      <li><a href="blog.html">Tutorials</a></li>
+      <li><a href="cart.html">Cart (<span id="cartCount">0</span>)</a></li>
+      <li><a href="profile.html">Profile</a></li>
+    </ul>
+    <button id="themeToggleBtn" class="theme-toggle-btn" aria-label="Toggle Theme" onclick="toggleTheme()">☀️</button>
+  </nav>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <section class="section" style="padding-top: 120px;">
+    <div class="container">
+      <h1 class="section-title" style="text-align: left; margin-bottom: 8px;">Hardware <span class="gradient-text">Store</span></h1>
+      <p class="section-subtitle" style="text-align: left; margin: 0; max-width: 800px;">
+        High-quality components for robotics, IoT, and embedded systems engineering.
+      </p>
+
+      <div class="filters" id="filters">
+        <button class="filter-btn active" data-filter="all">All Products</button>
+        <button class="filter-btn" data-filter="mcu">Microcontrollers</button>
+        <button class="filter-btn" data-filter="sensors">Sensors</button>
+        <button class="filter-btn" data-filter="motors">Motors</button>
+      </div>
+
+      <div class="product-grid" id="productGrid">
+        <!-- Dynamic Products -->
+      </div>
+    </div>
+  </section>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="auth-guard.js"></script>
+  <script src="app.js"></script>
+  <script>
+    const products = [
+      { id: 'mcu1', name: 'ESP32 Development Board', category: 'mcu', price: 8.50, emoji: '📱', desc: 'Powerful Wi-Fi + Bluetooth MCU for IoT projects.' },
+      { id: 'mcu2', name: 'Arduino Nano V3.0', category: 'mcu', price: 5.00, emoji: '⚡', desc: 'Classic, compact ATmega328P microcontroller.' },
+      { id: 'mcu3', name: 'Raspberry Pi Pico W', category: 'mcu', price: 6.00, emoji: '🍓', desc: 'RP2040 chip with built-in wireless connectivity.' },
+      { id: 'sen1', name: 'HC-SR04 Ultrasonic Sensor', category: 'sensors', price: 2.50, emoji: '📡', desc: 'Distance measuring transducer for robotics.' },
+      { id: 'sen2', name: 'MPU-6050 Gyro/Accel', category: 'sensors', price: 4.00, emoji: '📐', desc: '6-axis motion tracking device for drones & balance.' },
+      { id: 'mot1', name: 'NEMA 17 Stepper Motor', category: 'motors', price: 12.00, emoji: '⚙️', desc: 'High-torque precision motor for 3D printers and CNC.' },
+      { id: 'mot2', name: 'MG996R Servo Motor', category: 'motors', price: 7.00, emoji: '🦾', desc: 'High-torque metal gear servo for robotic arms.' }
+    ];
+
+    function renderProducts(filter = 'all') {
+      const grid = document.getElementById('productGrid');
+      grid.innerHTML = '';
+      
+      const filtered = filter === 'all' ? products : products.filter(p => p.category === filter);
+      
+      filtered.forEach(p => {
+        grid.innerHTML += `
+          <div class="product-card card">
+            <div class="product-img-wrap">${p.emoji}</div>
+            <div class="product-info">
+              <div class="product-title">${p.name}</div>
+              <div class="product-desc">${p.desc}</div>
+              <div class="product-price-row">
+                <div class="product-price">$${p.price.toFixed(2)}</div>
+                <button class="btn btn-primary" onclick="addToCart('${p.id}')">Add to Cart</button>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        renderProducts(e.target.dataset.filter);
+      });
+    });
+
+    renderProducts();
+
+    function addToCart(id) {
+      if(!currentUser) return showToast("Please login first", "error");
+      const p = products.find(x => x.id === id);
+      
+      // We will implement Firebase cart sync in app.js
+      let cart = JSON.parse(localStorage.getItem('estl_cart') || '[]');
+      const existing = cart.find(x => x.id === id);
+      if(existing) existing.qty += 1;
+      else cart.push({...p, qty: 1});
+      
+      localStorage.setItem('estl_cart', JSON.stringify(cart));
+      updateCartCount();
+      showToast(`${p.name} added to cart!`, "success");
+    }
+
+    function updateCartCount() {
+      const cart = JSON.parse(localStorage.getItem('estl_cart') || '[]');
+      const total = cart.reduce((sum, item) => sum + item.qty, 0);
+      const el = document.getElementById('cartCount');
+      if(el) el.innerText = total;
+    }
+
+    // Call on load
+    document.addEventListener('DOMContentLoaded', updateCartCount);
+  </script>
+</body>
+</html>

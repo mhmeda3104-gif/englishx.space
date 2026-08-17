@@ -3,113 +3,176 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Profile - Space Academy</title>
-  <meta name="description" content="View and edit your Space Academy profile.">
+  <title>Profile - ESTL Tech</title>
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="dashboard.css">
   <link rel="stylesheet" href="auth.css">
   <style>
-    .profile-page-container {
-      background: var(--card-bg);
-      border: 1px solid var(--border-color);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    .profile-container {
+      max-width: 800px;
+      margin: 0 auto;
     }
-    .profile-stats-row .stat-box {
-      border: 1px solid var(--border-color);
+    .profile-header {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      margin-bottom: 40px;
+    }
+    .profile-avatar {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: var(--bg-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      border: 2px solid var(--border);
+    }
+    .profile-info h1 {
+      margin: 0;
+      font-size: 28px;
+    }
+    .profile-info p {
+      margin: 4px 0 0;
+      color: var(--text-secondary);
+    }
+    .order-history {
+      margin-top: 40px;
+    }
+    .order-card {
+      padding: 20px;
+      margin-bottom: 16px;
+      border-left: 4px solid var(--primary);
+    }
+    .order-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+    }
+    .order-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 14px;
     }
   </style>
 </head>
-<body class="dashboard-body">
-
-  <nav class="navbar">
+<body>
+  <nav class="navbar" id="navbar">
     <a href="index.html" class="navbar-brand">
-      <div class="brand-icon"><img src="logo.png" alt="Space Academy"></div>
-      <span class="brand-text">Space Academy</span>
+      <div class="brand-icon"><img src="logo.png" alt="ESTL Logo"></div>
+      <span class="brand-text">ESTL Tech</span>
     </a>
     <ul class="nav-links">
       <li><a href="index.html">Home</a></li>
-      <li><a href="dashboard.html">Dashboard</a></li>
-      <li><a href="lessons.html">Lessons</a></li>
-      <li><a href="quiz.html">Quiz</a></li>
-      <li><a href="game.html">Games</a></li>
-      <li><a href="movies.html">Movies ??</a></li><li><a href="members.html">Members</a></li>
-      <li><a href="chat.html">Chat</a></li><li><a href="profile.html">Profile</a></li>
+      <li><a href="shop.html">Shop Components</a></li>
+      <li><a href="blog.html">Tutorials</a></li>
+      <li><a href="cart.html">Cart (<span id="cartCount">0</span>)</a></li>
+      <li><a href="profile.html" class="active">Profile</a></li>
     </ul>
     <button id="themeToggleBtn" class="theme-toggle-btn" aria-label="Toggle Theme" onclick="toggleTheme()">☀️</button>
   </nav>
 
   <div class="toast-container" id="toastContainer"></div>
 
-  <div class="container" style="padding-top: 100px; padding-bottom: 50px;">
-    <div class="profile-page-container card" style="max-width: 600px; margin: 0 auto; padding: 25px 30px; text-align: left; background: var(--card-bg); border-radius: 24px; border: 1px solid var(--border-color);">
+  <section class="section" style="padding-top: 120px; min-height: 80vh;">
+    <div class="container profile-container">
       
-      <!-- Threads-style Header -->
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
-        <!-- Left Info -->
-        <div>
-          <h1 class="main-title" id="profilePageName" style="margin-bottom: 5px; font-size: 1.6rem; font-weight: 700; color: var(--text-color);">Loading...</h1>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <p id="profilePageUsername" style="font-size: 1rem; margin: 0; font-weight: 500; color: var(--text-color);">loading</p>
-            <span style="background: var(--bg-color); padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; color: var(--text-muted); font-weight: 500;">englishx.space</span>
+      <div class="card">
+        <div class="profile-header">
+          <div class="profile-avatar">👤</div>
+          <div class="profile-info">
+            <h1 id="profileName">Loading...</h1>
+            <p id="profileEmail">loading@example.com</p>
+            <button class="btn btn-ghost" style="margin-top: 16px; padding: 6px 16px; font-size: 13px;" onclick="firebase.auth().signOut()">Sign Out</button>
           </div>
         </div>
-        
-        <!-- Right Avatar -->
-        <div class="profile-avatar-wrap" style="position: relative; width: 80px; height: 80px; cursor: pointer; flex-shrink: 0;" onclick="document.getElementById('avatarUpload').click()" title="Change Profile Picture">
-          <div class="avatar" id="profilePageAvatar" style="font-size: 2.5rem; width: 100%; height: 100%; border-radius: 50%; display: flex; align-items: center; justify-content: center; background-color: var(--bg-color); background-size: cover; background-position: center; overflow: hidden; border: 1px solid var(--border-color);">👤</div>
-          <div style="position: absolute; bottom: 0; right: 0; background: var(--card-bg); border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border-color); font-size: 0.8rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">➕</div>
+
+        <div class="order-history">
+          <h2>Order History</h2>
+          <div id="ordersContainer">
+            <p style="color: var(--text-muted); margin-top: 16px;">Loading orders...</p>
+          </div>
         </div>
-        <input type="file" id="avatarUpload" accept="image/*" style="display: none;" onchange="uploadAvatar(event)">
       </div>
 
-      <!-- Stats summary -->
-      <div style="display: flex; gap: 15px; margin-bottom: 25px; font-size: 0.95rem; color: var(--text-muted);">
-        <div><span id="profilePageXP" style="font-weight: 600; color: var(--text-color);">0</span> XP</div>
-        <div><span id="profilePageLevel" style="font-weight: 600; color: var(--text-color);">1</span> Level</div>
-        <div><span id="profilePageStreak" style="font-weight: 600; color: var(--text-color);">0</span> Day Streak</div>
-      </div>
-
-      <!-- Action Buttons -->
-      <div style="display: flex; gap: 10px; margin-bottom: 25px;">
-        <button class="btn btn-ghost" style="flex: 1; border: 1px solid var(--border-color); border-radius: 12px; padding: 8px; font-weight: 600; background: transparent; color: var(--text-color);" onclick="document.getElementById('editProfileForm').style.display = document.getElementById('editProfileForm').style.display === 'none' ? 'block' : 'none'">Edit profile</button>
-        <button class="btn btn-ghost" style="flex: 1; border: 1px solid var(--border-color); border-radius: 12px; padding: 8px; font-weight: 600; background: transparent; color: var(--text-color);">Share profile</button>
-      </div>
-
-      <!-- Edit Form (Hidden by default) -->
-      <div id="editProfileForm" class="edit-profile-form" style="display: none; text-align: left; background: var(--bg-color); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 25px;">
-        <h3 style="margin-bottom: 15px; font-size: 1.1rem;">Edit Details</h3>
-        
-        <div class="form-group" style="margin-bottom: 15px;">
-          <label class="form-label" style="display: block; margin-bottom: 5px; font-size: 0.9rem;">Full Name</label>
-          <input type="text" id="editNameInput" class="auth-input" style="width: 100%; border: 1px solid var(--border-color); background: var(--card-bg); padding: 10px; border-radius: 8px;" placeholder="Your Name">
-        </div>
-
-        <div class="form-group" style="margin-bottom: 15px;">
-          <label class="form-label" style="display: block; margin-bottom: 5px; font-size: 0.9rem;">Username</label>
-          <input type="text" id="editUsernameInput" class="auth-input" style="width: 100%; border: 1px solid var(--border-color); background: var(--card-bg); padding: 10px; border-radius: 8px;" placeholder="username">
-        </div>
-
-        <div class="form-group" style="margin-bottom: 20px;">
-          <label class="form-label" style="display: block; margin-bottom: 5px; font-size: 0.9rem;">User ID (Read Only)</label>
-          <input type="text" id="editUserId" class="auth-input" style="width: 100%; border: 1px solid var(--border-color); background: var(--card-bg); padding: 10px; border-radius: 8px; opacity: 0.6; cursor: not-allowed;" readonly>
-        </div>
-
-        <button class="btn btn-primary" id="saveProfileBtn" style="width: 100%; justify-content: center; border-radius: 10px;" onclick="saveProfileChanges()">Save Changes</button>
-      </div>
-      
-      <div style="padding-top: 15px; border-top: 1px solid var(--border-color); text-align: center;">
-        <button class="btn btn-ghost" style="color: #ef4444; width: 100%; justify-content: center; font-weight: 600; background: transparent; padding: 10px;" onclick="logoutUser()">Log out</button>
-      </div>
     </div>
-  </div>
+  </section>
 
-  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
   <script src="auth-guard.js"></script>
   <script src="app.js"></script>
-  <script src="profile.js"></script>
+  <script>
+    function updateCartCount() {
+      const cart = JSON.parse(localStorage.getItem('estl_cart') || '[]');
+      const total = cart.reduce((sum, item) => sum + item.qty, 0);
+      const el = document.getElementById('cartCount');
+      if(el) el.innerText = total;
+    }
+    document.addEventListener('DOMContentLoaded', updateCartCount);
+
+    firebase.auth().onAuthStateChanged((user) => {
+      if (user) {
+        document.getElementById('profileName').innerText = user.displayName || "Engineer";
+        document.getElementById('profileEmail').innerText = user.email;
+        loadOrders(user.uid);
+      }
+    });
+
+    function loadOrders(uid) {
+      firebase.database().ref(`users/${uid}/orders`).once('value').then(snap => {
+        const container = document.getElementById('ordersContainer');
+        if(!snap.exists()) {
+          container.innerHTML = `<p style="color: var(--text-muted); margin-top: 16px;">You haven't placed any orders yet.</p>`;
+          return;
+        }
+
+        container.innerHTML = '';
+        const orders = snap.val();
+        
+        // Sort by date descending
+        const sortedOrderKeys = Object.keys(orders).sort((a,b) => new Date(orders[b].date) - new Date(orders[a].date));
+
+        sortedOrderKeys.forEach(key => {
+          const order = orders[key];
+          const date = new Date(order.date).toLocaleDateString();
+          
+          let itemsHtml = '';
+          order.items.forEach(item => {
+            itemsHtml += `
+              <div class="order-item">
+                <span>${item.qty}x ${item.name}</span>
+                <span>$${(item.price * item.qty).toFixed(2)}</span>
+              </div>
+            `;
+          });
+
+          container.innerHTML += `
+            <div class="card order-card">
+              <div class="order-header">
+                <div>
+                  <strong>Order #${key.slice(-6)}</strong>
+                  <div style="font-size: 12px; color: var(--text-muted); margin-top:4px;">${date}</div>
+                </div>
+                <div>
+                  <span class="badge badge-primary">${order.status || 'Processing'}</span>
+                </div>
+              </div>
+              <div style="margin-bottom: 12px;">
+                ${itemsHtml}
+              </div>
+              <div style="border-top: 1px solid var(--border); padding-top: 12px; text-align: right; font-weight: bold;">
+                Total: $${order.total.toFixed(2)}
+              </div>
+            </div>
+          `;
+        });
+      });
+    }
+  </script>
 </body>
 </html>

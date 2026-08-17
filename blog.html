@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ESTL - Technical Tutorials</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="auth.css">
+  <style>
+    .blog-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 24px;
+      margin-top: 40px;
+    }
+    .blog-card {
+      padding: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .blog-img {
+      height: 200px;
+      background: var(--bg-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 64px;
+      border-bottom: 1px solid var(--border);
+    }
+    .blog-content {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+    .blog-tag {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+    }
+    .blog-title {
+      font-size: 20px;
+      font-weight: 800;
+      margin-bottom: 12px;
+      line-height: 1.4;
+    }
+    .blog-excerpt {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      flex: 1;
+    }
+    .blog-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .read-more {
+      color: var(--primary-light);
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .read-more:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar" id="navbar">
+    <a href="index.html" class="navbar-brand">
+      <div class="brand-icon"><img src="logo.png" alt="ESTL Logo"></div>
+      <span class="brand-text">ESTL Tech</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="shop.html">Shop Components</a></li>
+      <li><a href="blog.html" class="active">Tutorials</a></li>
+      <li><a href="cart.html">Cart (<span id="cartCount">0</span>)</a></li>
+      <li><a href="profile.html">Profile</a></li>
+    </ul>
+    <button id="themeToggleBtn" class="theme-toggle-btn" aria-label="Toggle Theme" onclick="toggleTheme()">☀️</button>
+  </nav>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <section class="section" style="padding-top: 120px; min-height: 80vh;">
+    <div class="container">
+      <h1 class="section-title" style="text-align: left;">Technical <span class="gradient-text">Tutorials</span></h1>
+      <p class="section-subtitle" style="text-align: left; margin: 0; max-width: 800px;">
+        Learn how to build, wire, and program embedded systems from scratch.
+      </p>
+
+      <div class="blog-grid">
+        <div class="card blog-card">
+          <div class="blog-img" style="background: linear-gradient(135deg, #161622, #0a0a0f);">🤖</div>
+          <div class="blog-content">
+            <div class="blog-tag">Robotics</div>
+            <div class="blog-title">Building a Line-Following Robot with Arduino</div>
+            <div class="blog-excerpt">A complete step-by-step guide to wiring IR sensors, motor drivers, and writing the PID control loop in C++.</div>
+            <div class="blog-footer">
+              <span>Aug 17, 2026</span>
+              <a href="#" class="read-more">Read Article →</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="card blog-card">
+          <div class="blog-img" style="background: linear-gradient(135deg, #161622, #0a0a0f);">🌐</div>
+          <div class="blog-content">
+            <div class="blog-tag">IoT</div>
+            <div class="blog-title">Connecting ESP32 to Firebase Realtime Database</div>
+            <div class="blog-excerpt">Learn how to send sensor data from your ESP32 directly to the cloud and visualize it on a web dashboard.</div>
+            <div class="blog-footer">
+              <span>Aug 12, 2026</span>
+              <a href="#" class="read-more">Read Article →</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="card blog-card">
+          <div class="blog-img" style="background: linear-gradient(135deg, #161622, #0a0a0f);">⚡</div>
+          <div class="blog-content">
+            <div class="blog-tag">Hardware</div>
+            <div class="blog-title">Understanding Pull-up and Pull-down Resistors</div>
+            <div class="blog-excerpt">The absolute beginner's guide to digital logic levels, floating pins, and why resistors are crucial for buttons.</div>
+            <div class="blog-footer">
+              <span>Aug 5, 2026</span>
+              <a href="#" class="read-more">Read Article →</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="auth-guard.js"></script>
+  <script src="app.js"></script>
+  <script>
+    function updateCartCount() {
+      const cart = JSON.parse(localStorage.getItem('estl_cart') || '[]');
+      const total = cart.reduce((sum, item) => sum + item.qty, 0);
+      const el = document.getElementById('cartCount');
+      if(el) el.innerText = total;
+    }
+    document.addEventListener('DOMContentLoaded', updateCartCount);
+  </script>
+</body>
+</html>
