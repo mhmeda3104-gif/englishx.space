@@ -193,9 +193,9 @@
       revealObserver.observe(el);
     });
 
-    // Stagger gallery items animation
+    // Stagger gallery items animation with bigger delay for slow-motion effect
     document.querySelectorAll('.gallery-item').forEach((item, index) => {
-      item.style.transitionDelay = `${index * 0.12}s`;
+      item.style.transitionDelay = `${index * 0.25}s`;
     });
 
     setTimeout(() => { window.showToast && showToast("Welcome to ESTL Robotics Lab! 🤖", "info") }, 1e3);
