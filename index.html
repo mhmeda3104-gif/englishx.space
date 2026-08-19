@@ -64,24 +64,60 @@
       <p class="section-subtitle">From high-performance microcontrollers to precision sensors, we have the hardware for your next big idea.</p>
       
       <div class="grid-3">
-        <div class="feature-card card" onclick='window.location="shop.html?category=mcu"'>
+        <div class="feature-card card reveal-scroll" onclick='window.location="shop.html?category=mcu"'>
           <div class="feature-icon" style="background:linear-gradient(135deg, #00FF9D, #00804F)">💻</div>
           <h3>Microcontrollers</h3>
           <p>ESP32, Arduino Nano, Raspberry Pi Pico, and STM32 boards for powerful edge computing.</p>
           <div class="feature-link">View MCUs →</div>
         </div>
-        <div class="feature-card card" onclick='window.location="shop.html?category=sensors"'>
+        <div class="feature-card card reveal-scroll" style="transition-delay: 0.15s" onclick='window.location="shop.html?category=sensors"'>
           <div class="feature-icon" style="background:linear-gradient(135deg, #00D2FF, #0088CC)">🌡️</div>
           <h3>Precision Sensors</h3>
           <p>LiDAR, Gyroscopes, Temp/Humidity, and Ultrasonic sensors for robotic perception.</p>
           <div class="feature-link">Shop Sensors →</div>
         </div>
-        <div class="feature-card card" onclick='window.location="blog.html"'>
+        <div class="feature-card card reveal-scroll" style="transition-delay: 0.3s" onclick='window.location="blog.html"'>
           <div class="feature-icon" style="background:linear-gradient(135deg, #FF0055, #E6004C)">📝</div>
           <h3>Technical Guides</h3>
           <p>Step-by-step tutorials on IoT integration, PCB design, and C++ programming.</p>
           <div class="feature-link">Read Guides →</div>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Gallery Reveal on Scroll Section -->
+  <section class="section gallery-section" id="gallery">
+    <div class="container">
+      <div class="badge badge-primary" style="margin:0 auto 20px; display:flex; justify-content:center; width:fit-content;">🖼️ Our Projects</div>
+      <h2 class="section-title">Built with <span class="gradient-text">ESTL Hardware</span></h2>
+      <p class="section-subtitle">Real projects from our community — scroll to discover what's possible.</p>
+      
+      <div class="gallery-grid">
+        <figure class="gallery-item gallery-item-1 reveal-scroll">
+          <img src="https://images.unsplash.com/photo-1561557944-6e7860d1a7eb?w=500&h=600&fit=crop" alt="Robot Arm Project" loading="lazy">
+          <figcaption>🤖 Robot Arm Build</figcaption>
+        </figure>
+        <figure class="gallery-item gallery-item-2 reveal-scroll">
+          <img src="https://images.unsplash.com/photo-1518770660439-4636190af475?w=500&h=400&fit=crop" alt="Circuit Board" loading="lazy">
+          <figcaption>💻 Custom PCB Design</figcaption>
+        </figure>
+        <figure class="gallery-item gallery-item-3 reveal-scroll">
+          <img src="https://images.unsplash.com/photo-1555664424-778a1e5e1b48?w=500&h=500&fit=crop" alt="IoT Setup" loading="lazy">
+          <figcaption>📡 IoT Smart Home</figcaption>
+        </figure>
+        <figure class="gallery-item gallery-item-4 reveal-scroll">
+          <img src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=500&h=450&fit=crop" alt="3D Printing" loading="lazy">
+          <figcaption>🖨️ 3D Printed Parts</figcaption>
+        </figure>
+        <figure class="gallery-item gallery-item-5 reveal-scroll">
+          <img src="https://images.unsplash.com/photo-1563770660941-20978e870e26?w=500&h=500&fit=crop" alt="Drone Build" loading="lazy">
+          <figcaption>🚁 Custom Drone</figcaption>
+        </figure>
+        <figure class="gallery-item gallery-item-6 reveal-scroll">
+          <img src="https://images.unsplash.com/photo-1535378917042-10a22c95931a?w=500&h=400&fit=crop" alt="Arduino Project" loading="lazy">
+          <figcaption>⚡ Arduino Workshop</figcaption>
+        </figure>
       </div>
     </div>
   </section>
@@ -141,9 +177,28 @@
   <script src="auth-guard.js"></script>
   <script src="app.js"></script>
   <script>
-    const observer=new IntersectionObserver(e=>{e.forEach(e=>{e.isIntersecting&&e.target.classList.add("visible")})},{threshold:.1});
-    document.querySelectorAll(".feature-card, .level-card, .stat-card").forEach(e=>observer.observe(e));
-    setTimeout(()=>{window.showToast&&showToast("Welcome to ESTL Robotics Lab! 🤖","info")},1e3);
+    // Enhanced Reveal on Scroll Observer
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('revealed');
+          // Also add 'visible' for backward compatibility with existing styles
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.15, rootMargin: '0px 0px -50px 0px' });
+
+    // Observe all reveal-scroll elements (gallery items + feature cards)
+    document.querySelectorAll('.reveal-scroll, .feature-card, .level-card, .stat-card').forEach((el) => {
+      revealObserver.observe(el);
+    });
+
+    // Stagger gallery items animation
+    document.querySelectorAll('.gallery-item').forEach((item, index) => {
+      item.style.transitionDelay = `${index * 0.12}s`;
+    });
+
+    setTimeout(() => { window.showToast && showToast("Welcome to ESTL Robotics Lab! 🤖", "info") }, 1e3);
   </script>
 </body>
 </html>
