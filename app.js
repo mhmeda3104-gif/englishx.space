@@ -52,6 +52,14 @@ document.addEventListener("DOMContentLoaded", () => {
   initTheme();
 });
 
+// Interactive Mouse Glow Effect
+document.addEventListener("mousemove", (e) => {
+  const x = e.clientX;
+  const y = e.clientY;
+  document.documentElement.style.setProperty("--mouse-x", `${x}px`);
+  document.documentElement.style.setProperty("--mouse-y", `${y}px`);
+});
+
 // Expose to window for inline HTML handlers
 window.showToast = showToast;
 window.toggleTheme = toggleTheme;

@@ -79,6 +79,12 @@ body::before {
   inset: 0;
   background-image:
     radial-gradient(
+      800px circle at var(--mouse-x, 50vw) var(--mouse-y, 50vh),
+      rgba(0, 255, 157, 0.06),
+      rgba(0, 210, 255, 0.03),
+      transparent 50%
+    ),
+    radial-gradient(
       circle at 20% 20%,
       rgba(75, 86, 148, 0.1) 0,
       transparent 50%
@@ -95,6 +101,7 @@ body::before {
     );
   pointer-events: none;
   z-index: 0;
+  transition: background 0.1s ease;
 }
 ::-webkit-scrollbar {
   width: 6px;
