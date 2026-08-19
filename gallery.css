@@ -1,0 +1,168 @@
+/* ========== Reveal on Scroll Animation (Feature Cards) ========== */
+.reveal-scroll {
+  opacity: 0;
+  transform: translateY(60px) scale(0.95);
+}
+.reveal-scroll.revealed {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition:
+    opacity 1s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 1s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ========== Gallery Section ========== */
+.gallery-section {
+  padding: 100px 40px 60px;
+  overflow: hidden;
+}
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(14, 1fr);
+  column-gap: 8px;
+  row-gap: 0;
+  align-items: start;
+  margin-top: 48px;
+  padding-bottom: 60px;
+}
+.gallery-item {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  height: clamp(260px, 35vw, 420px);
+  margin: 0;
+  padding: 0;
+}
+
+/* === Image: hidden state (NO transition here — key for slow-mo!) === */
+.gallery-item img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  scale: 2;
+  opacity: 0;
+  clip-path: polygon(50% 50%, 50% 50%, 50% 50%, 50% 50%);
+}
+
+/* === Image: revealed state (transition ONLY here = slow motion effect) === */
+.gallery-item.revealed img {
+  scale: 1;
+  opacity: 1;
+  clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
+  transition:
+    scale 1.5s cubic-bezier(0.86, 0, 0.31, 1),
+    opacity 1.5s cubic-bezier(0.86, 0, 0.31, 1),
+    clip-path 1.5s cubic-bezier(0.86, 0, 0.31, 1);
+}
+
+.gallery-item:hover img {
+  scale: 1.05;
+  transition: scale 0.6s ease;
+}
+
+/* Caption */
+.gallery-item figcaption {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 20px;
+  background: linear-gradient(transparent, rgba(0,0,0,0.85));
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.4s ease;
+}
+.gallery-item:hover figcaption {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* === Scattered Grid Positions (14-column layout like tutorial) === */
+.gallery-item-1 {
+  grid-row-start: 1;
+  grid-column: 2 / 7;
+  height: clamp(300px, 40vw, 480px);
+}
+.gallery-item-2 {
+  grid-row-start: 1;
+  grid-column: 9 / 13;
+  height: clamp(240px, 30vw, 380px);
+  align-self: center;
+}
+.gallery-item-3 {
+  grid-row-start: 2;
+  grid-column: 4 / 8;
+  height: clamp(260px, 32vw, 400px);
+}
+.gallery-item-4 {
+  grid-row-start: 2;
+  grid-column: 10 / 14;
+  height: clamp(240px, 28vw, 360px);
+}
+.gallery-item-5 {
+  grid-row-start: 3;
+  grid-column: 2 / 6;
+  height: clamp(250px, 30vw, 380px);
+}
+.gallery-item-6 {
+  grid-row-start: 3;
+  grid-column: 7 / 12;
+  height: clamp(280px, 33vw, 400px);
+  align-self: end;
+}
+
+/* Gallery glow effect on hover */
+.gallery-item::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-lg);
+  box-shadow: inset 0 0 0 1px rgba(0, 255, 157, 0);
+  transition: box-shadow 0.4s ease;
+  pointer-events: none;
+  z-index: 2;
+}
+.gallery-item:hover::after {
+  box-shadow: inset 0 0 0 2px var(--primary), 0 0 25px rgba(0, 255, 157, 0.2);
+}
+
+/* ========== Responsive ========== */
+@media (max-width: 1024px) {
+  .gallery-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  .gallery-item-1,
+  .gallery-item-2,
+  .gallery-item-3,
+  .gallery-item-4,
+  .gallery-item-5,
+  .gallery-item-6 {
+    grid-column: auto;
+    grid-row: auto;
+    height: 280px;
+  }
+}
+@media (max-width: 768px) {
+  .gallery-section {
+    padding: 60px 20px;
+  }
+  .gallery-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .gallery-item-1,
+  .gallery-item-2,
+  .gallery-item-3,
+  .gallery-item-4,
+  .gallery-item-5,
+  .gallery-item-6 {
+    height: 240px;
+  }
+}
