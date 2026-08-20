@@ -234,31 +234,39 @@
 
     let allMembers = [];
 
-    // Load all members
-    firebase.database().ref('users').once('value').then(snap => {
-      const grid = document.getElementById('membersGrid');
-      const countEl = document.getElementById('membersCount');
+    // Load all members - wait for auth to ensure permissions
+    firebase.auth().onAuthStateChanged(user => {
+      // Even if not logged in (guest), try to fetch. But auth usually needed for DB rules.
+      firebase.database().ref('users').once('value').then(snap => {
+        const grid = document.getElementById('membersGrid');
+        const countEl = document.getElementById('membersCount');
 
-      if (!snap.exists()) {
-        grid.innerHTML = '<div class="members-loading">No members yet.</div>';
-        countEl.textContent = '👥 0 Members';
-        return;
-      }
+        if (!snap.exists()) {
+          grid.innerHTML = '<div class="members-loading">No members yet.</div>';
+          countEl.textContent = '👥 0 Members';
+          return;
+        }
 
-      const users = snap.val();
-      const keys = Object.keys(users);
-      countEl.textContent = `👥 ${keys.length} Member${keys.length !== 1 ? 's' : ''}`;
+        const users = snap.val();
+        const keys = Object.keys(users);
+        countEl.textContent = `👥 ${keys.length} Member${keys.length !== 1 ? 's' : ''}`;
 
-      allMembers = keys.map(uid => ({ uid, ...users[uid] }));
-      // Sort: most projects first, then by XP
-      allMembers.sort((a, b) => {
-        const projA = Object.keys(a.projects || {}).length;
-        const projB = Object.keys(b.projects || {}).length;
-        if (projB !== projA) return projB - projA;
-        return (b.xp || 0) - (a.xp || 0);
+        allMembers = keys.map(uid => ({ uid, ...users[uid] }));
+        // Sort: most projects first, then by XP
+        allMembers.sort((a, b) => {
+          const projA = Object.keys(a.projects || {}).length;
+          const projB = Object.keys(b.projects || {}).length;
+          if (projB !== projA) return projB - projA;
+          return (b.xp || 0) - (a.xp || 0);
+        });
+
+        renderMembers(allMembers);
+      }).catch(err => {
+        console.error("Firebase DB Error:", err);
+        const grid = document.getElementById('membersGrid');
+        grid.innerHTML = `<div class="members-loading" style="color:var(--danger)">Error loading members. You might not have permission to view this yet.</div>`;
+        document.getElementById('membersCount').textContent = '👥 Error';
       });
-
-      renderMembers(allMembers);
     });
 
     function renderMembers(members) {
