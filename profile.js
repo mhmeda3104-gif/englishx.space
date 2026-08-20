@@ -2,20 +2,44 @@
 
 let currentUser = null;
 let userRef = null;
+let isOwner = false;
+let targetUid = null;
 
 document.addEventListener('DOMContentLoaded', () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const viewUserId = urlParams.get('id');
+
   firebase.auth().onAuthStateChanged(user => {
-    if (user) {
-      currentUser = user;
-      userRef = firebase.database().ref('users/' + user.uid);
-      loadProfileData();
-      loadProjects();
-      loadOrders(user.uid);
-    } else {
+    if (user) currentUser = user;
+
+    targetUid = viewUserId || (user ? user.uid : null);
+
+    if (!targetUid) {
       if (sessionStorage.getItem('guestMode') === 'true') {
         showGuestState();
+      } else {
+        // Not guest, not logged in, no ID -> go to auth
+        window.location.href = 'auth.html';
       }
+      return;
     }
+
+    isOwner = (user && user.uid === targetUid);
+    userRef = firebase.database().ref('users/' + targetUid);
+
+    // Hide owner-only elements if not owner
+    if (!isOwner) {
+      document.querySelectorAll('.owner-only').forEach(el => el.style.display = 'none');
+      const orderSec = document.querySelector('.orders-section');
+      if (orderSec) orderSec.style.display = 'none';
+      const avatarHint = document.querySelector('.avatar-upload-hint');
+      if (avatarHint) avatarHint.style.display = 'none';
+      document.getElementById('profileAvatar').style.cursor = 'default';
+    }
+
+    loadProfileData();
+    loadProjects();
+    if (isOwner) loadOrders(targetUid);
   });
 });
 
@@ -23,7 +47,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function loadProfileData() {
   userRef.once('value').then(snapshot => {
-    if (!snapshot.exists()) return;
+    if (!snapshot.exists()) {
+      setText('profileName', 'User Not Found');
+      setText('profileUsername', '');
+      setText('profileBio', 'This user does not exist or has no data.');
+      return;
+    }
     const d = snapshot.val();
 
     setText('profileName', d.name || 'Space Learner');
@@ -51,18 +80,20 @@ function loadProfileData() {
     if (social.instagram) socialsEl.innerHTML += `<a href="${esc(social.instagram)}" target="_blank">📸 Instagram</a>`;
     if (social.website) socialsEl.innerHTML += `<a href="${esc(social.website)}" target="_blank">🌐 Website</a>`;
 
-    // Prefill edit form
-    document.getElementById('editName').value = d.name || '';
-    document.getElementById('editUsername').value = d.username || '';
-    document.getElementById('editBio').value = d.bio || '';
-    document.getElementById('editGithub').value = (d.social && d.social.github) || '';
-    document.getElementById('editInstagram').value = (d.social && d.social.instagram) || '';
-    document.getElementById('editWebsite').value = (d.social && d.social.website) || '';
+    // Prefill edit form (only matters if owner)
+    if (isOwner) {
+      document.getElementById('editName').value = d.name || '';
+      document.getElementById('editUsername').value = d.username || '';
+      document.getElementById('editBio').value = d.bio || '';
+      document.getElementById('editGithub').value = (d.social && d.social.github) || '';
+      document.getElementById('editInstagram').value = (d.social && d.social.instagram) || '';
+      document.getElementById('editWebsite').value = (d.social && d.social.website) || '';
+    }
   });
 }
 
 function saveProfile() {
-  if (!currentUser) return;
+  if (!isOwner || !currentUser) return;
   const name = document.getElementById('editName').value.trim();
   let username = document.getElementById('editUsername').value.trim().replace(/^@/, '');
   const bio = document.getElementById('editBio').value.trim();
@@ -101,10 +132,12 @@ function saveProfile() {
 // ===================== AVATAR =====================
 
 function triggerAvatarUpload() {
+  if (!isOwner) return;
   document.getElementById('avatarInput').click();
 }
 
 function handleAvatarUpload(event) {
+  if (!isOwner) return;
   const file = event.target.files[0];
   if (!file) return;
   if (!file.type.startsWith('image/')) { showToast('Please select an image', 'error'); return; }
@@ -145,12 +178,16 @@ function loadProjects() {
     grid.innerHTML = '';
 
     if (!snap.exists() || Object.keys(snap.val()).length === 0) {
-      grid.innerHTML = `
-        <div class="add-project-card" onclick="openProjectModal()">
-          <div class="add-icon">+</div>
-          <span>Add your first project</span>
-        </div>
-      `;
+      if (isOwner) {
+        grid.innerHTML = `
+          <div class="add-project-card" onclick="openProjectModal()">
+            <div class="add-icon">+</div>
+            <span>Add your first project</span>
+          </div>
+        `;
+      } else {
+        grid.innerHTML = `<div class="empty-projects"><div class="empty-icon">📭</div><p>This user hasn't added any projects yet.</p></div>`;
+      }
       setText('statProjects', 0);
       return;
     }
@@ -164,13 +201,14 @@ function loadProjects() {
       grid.innerHTML += buildProjectCard(key, p);
     });
 
-    // Add "+" card at the end
-    grid.innerHTML += `
-      <div class="add-project-card" onclick="openProjectModal()">
-        <div class="add-icon">+</div>
-        <span>Add new project</span>
-      </div>
-    `;
+    if (isOwner) {
+      grid.innerHTML += `
+        <div class="add-project-card" onclick="openProjectModal()">
+          <div class="add-icon">+</div>
+          <span>Add new project</span>
+        </div>
+      `;
+    }
   });
 }
 
@@ -181,6 +219,13 @@ function buildProjectCard(key, p) {
     ? `<img class="project-cover" src="${esc(p.image)}" alt="${esc(p.title)}" onerror="this.outerHTML='<div class=\\'project-cover-placeholder\\'>🚀</div>'">`
     : `<div class="project-cover-placeholder">🚀</div>`;
 
+  const actions = isOwner ? `
+    <div class="project-actions">
+      <button onclick="editProject('${key}')" title="Edit">✏️</button>
+      <button class="delete-btn" onclick="deleteProject('${key}')" title="Delete">🗑️</button>
+    </div>
+  ` : '';
+
   return `
     <div class="card project-card">
       ${cover}
@@ -190,10 +235,7 @@ function buildProjectCard(key, p) {
         <div class="project-tags">${tags}</div>
         <div class="project-meta">
           <span class="project-date">${date}</span>
-          <div class="project-actions">
-            <button onclick="editProject('${key}')" title="Edit">✏️</button>
-            <button class="delete-btn" onclick="deleteProject('${key}')" title="Delete">🗑️</button>
-          </div>
+          ${actions}
         </div>
       </div>
     </div>
@@ -204,6 +246,7 @@ let editingProjectKey = null;
 let projectImageData = '';
 
 function openProjectModal(prefill) {
+  if (!isOwner) return;
   editingProjectKey = prefill ? prefill.key : null;
   document.getElementById('projectModalTitle').textContent = editingProjectKey ? 'Edit Project' : 'Add Project';
   document.getElementById('projTitle').value = prefill ? prefill.title : '';
@@ -225,6 +268,7 @@ function openProjectModal(prefill) {
 }
 
 function handleProjectImage(event) {
+  if (!isOwner) return;
   const file = event.target.files[0];
   if (!file) return;
   if (!file.type.startsWith('image/')) { showToast('Select an image file', 'error'); return; }
@@ -255,7 +299,7 @@ function handleProjectImage(event) {
 }
 
 function saveProject() {
-  if (!currentUser) return;
+  if (!isOwner || !currentUser) return;
   const title = document.getElementById('projTitle').value.trim();
   const description = document.getElementById('projDesc').value.trim();
   const tagsRaw = document.getElementById('projTags').value.trim();
@@ -301,6 +345,7 @@ function saveProject() {
 }
 
 function editProject(key) {
+  if (!isOwner) return;
   userRef.child('projects/' + key).once('value').then(snap => {
     if (!snap.exists()) return;
     const p = snap.val();
@@ -309,6 +354,7 @@ function editProject(key) {
 }
 
 function deleteProject(key) {
+  if (!isOwner) return;
   if (!confirm('Are you sure you want to delete this project?')) return;
   userRef.child('projects/' + key).remove().then(() => {
     loadProjects();
@@ -393,6 +439,8 @@ function showGuestState() {
   setText('profileUsername', '@guest');
   setText('profileBio', 'Sign in to create your portfolio.');
   document.querySelectorAll('.owner-only').forEach(el => el.style.display = 'none');
+  const orderSec = document.querySelector('.orders-section');
+  if (orderSec) orderSec.style.display = 'none';
 }
 
 function logoutUser() {

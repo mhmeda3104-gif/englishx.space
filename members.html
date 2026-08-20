@@ -284,7 +284,7 @@
           : `<div class="member-avatar">👤</div>`;
 
         return `
-          <div class="card member-card" onclick="window.location.href='profile.html'" data-name="${esc(u.name || '')}" data-username="${esc(u.username || '')}">
+          <div class="card member-card" onclick="window.location.href='profile.html?id=${u.uid}'" data-name="${esc(u.name || '')}" data-username="${esc(u.username || '')}">
             ${avatar}
             <h3 class="member-name">${esc(u.name || 'Space Learner')}</h3>
             <p class="member-username">@${esc(u.username || 'user')}</p>
