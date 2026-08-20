@@ -284,7 +284,7 @@
           : `<div class="member-avatar">👤</div>`;
 
         return `
-          <div class="card member-card" onclick="window.location.href='profile.html?id=${u.uid}'" data-name="${esc(u.name || '')}" data-username="${esc(u.username || '')}">
+          <a href="profile.html?id=${u.uid}" class="card member-card" style="display:block; text-decoration:none;" data-name="${esc(u.name || '')}" data-username="${esc(u.username || '')}">
             ${avatar}
             <h3 class="member-name">${esc(u.name || 'Space Learner')}</h3>
             <p class="member-username">@${esc(u.username || 'user')}</p>
@@ -304,7 +304,7 @@
               </div>
             </div>
             ${projectTags.length ? `<div class="member-tags">${projectTags.map(t => `<span class="member-tag">${esc(t)}</span>`).join('')}</div>` : ''}
-          </div>
+          </a>
         `;
       }).join('');
     }
