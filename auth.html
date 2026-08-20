@@ -147,7 +147,7 @@
     // ── Check if already logged in ──
     auth.onAuthStateChanged(user => {
       if (user) {
-        const redirect = sessionStorage.getItem('authRedirect') || 'index.html';
+        const redirect = sessionStorage.getItem('authRedirect') || 'profile.html';
         sessionStorage.removeItem('authRedirect');
         window.location.href = redirect;
       }
