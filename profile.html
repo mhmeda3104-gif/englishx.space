@@ -3,76 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Profile - ESTL Tech</title>
-  <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="auth.css">
-  <style>
-    .profile-container {
-      max-width: 800px;
-      margin: 0 auto;
-    }
-    .profile-header {
-      display: flex;
-      align-items: center;
-      gap: 24px;
-      margin-bottom: 40px;
-    }
-    .profile-avatar {
-      width: 100px;
-      height: 100px;
-      border-radius: 50%;
-      background: var(--bg-secondary);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 40px;
-      border: 2px solid var(--border);
-    }
-    .profile-info h1 {
-      margin: 0;
-      font-size: 28px;
-    }
-    .profile-info p {
-      margin: 4px 0 0;
-      color: var(--text-secondary);
-    }
-    .order-history {
-      margin-top: 40px;
-    }
-    .order-card {
-      padding: 20px;
-      margin-bottom: 16px;
-      border-left: 4px solid var(--primary);
-    }
-    .order-header {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 12px;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 12px;
-    }
-    .order-item {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 8px;
-      font-size: 14px;
-    }
-  </style>
+  <title>My Portfolio - ESTL Tech</title>
+  <meta name="description" content="Your personal portfolio on ESTL — showcase your robotics and embedded systems projects.">
+  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="auth.css?v=2">
+  <link rel="stylesheet" href="profile.css?v=1">
   <link rel="icon" type="image/png" href="logo.png">
 </head>
 <body>
-    <nav class="navbar" id="navbar">
+  <!-- Navbar -->
+  <nav class="navbar" id="navbar">
     <a href="index.html" class="navbar-brand">
       <div class="brand-icon"><img src="logo.png" alt="ESTL Logo"></div>
       <span class="brand-text" style="text-transform:uppercase; font-size: 22px;">ESTL Store</span>
     </a>
-    
     <ul class="nav-links" style="position:absolute; left:50%; transform:translateX(-50%);">
       <li><a href="index.html">Home</a></li>
       <li><a href="shop.html">Shop</a></li>
       <li><a href="ai-builder.html">AI Builder</a></li>
-      </ul>
-
+    </ul>
     <div class="nav-actions" style="display:flex; align-items:center; gap:20px;">
       <a href="auth.html" title="Profile/Login" style="color:var(--text-primary); transition: opacity 0.3s;" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
@@ -87,23 +36,66 @@
 
   <div class="toast-container" id="toastContainer"></div>
 
-  <section class="section" style="padding-top: 120px; min-height: 80vh;">
+  <!-- ===== PROFILE CONTENT ===== -->
+  <section class="section profile-section">
     <div class="container profile-container">
-      
-      <div class="card">
-        <div class="profile-header">
-          <div class="profile-avatar">👤</div>
-          <div class="profile-info">
-            <h1 id="profileName">Loading...</h1>
-            <p id="profileEmail">loading@example.com</p>
-            <button class="btn btn-ghost" style="margin-top: 16px; padding: 6px 16px; font-size: 13px;" onclick="firebase.auth().signOut()">Sign Out</button>
-          </div>
-        </div>
 
-        <div class="order-history">
-          <h2>Order History</h2>
+      <!-- Profile Hero Card -->
+      <div class="card profile-hero">
+        <div class="profile-avatar-wrap">
+          <div class="profile-avatar" id="profileAvatar" onclick="triggerAvatarUpload()">👤</div>
+          <div class="avatar-upload-hint" onclick="triggerAvatarUpload()">📷</div>
+          <input type="file" id="avatarInput" accept="image/*" onchange="handleAvatarUpload(event)" hidden>
+        </div>
+        <div class="profile-details">
+          <h1 class="profile-name" id="profileName">Loading...</h1>
+          <p class="profile-username" id="profileUsername">@...</p>
+          <p class="profile-bio" id="profileBio">Loading bio...</p>
+          <div class="profile-socials" id="profileSocials"></div>
+        </div>
+        <div class="profile-actions owner-only">
+          <button class="btn btn-ghost" style="padding:8px 18px; font-size:13px;" onclick="openModal('editProfileModal')">✏️ Edit Profile</button>
+          <button class="btn btn-ghost" style="padding:8px 18px; font-size:13px;" onclick="logoutUser()">Sign Out</button>
+        </div>
+      </div>
+
+      <!-- Stats Bar -->
+      <div class="stats-bar">
+        <div class="card stat-item">
+          <div class="stat-value" id="statProjects">0</div>
+          <div class="stat-label">Projects</div>
+        </div>
+        <div class="card stat-item">
+          <div class="stat-value" id="statXP">0</div>
+          <div class="stat-label">XP</div>
+        </div>
+        <div class="card stat-item">
+          <div class="stat-value" id="statLevel">1</div>
+          <div class="stat-label">Level</div>
+        </div>
+      </div>
+
+      <!-- Projects Section -->
+      <div class="projects-header">
+        <h2>🚀 My Projects</h2>
+        <button class="btn btn-primary owner-only" style="padding:10px 24px; font-size:14px;" onclick="openProjectModal()">+ Add Project</button>
+      </div>
+      <div class="projects-grid" id="projectsGrid">
+        <div class="add-project-card" onclick="openProjectModal()">
+          <div class="add-icon">+</div>
+          <span>Add your first project</span>
+        </div>
+      </div>
+
+      <!-- Order History (Collapsible) -->
+      <div class="orders-section">
+        <button class="orders-toggle" id="ordersToggle" onclick="toggleOrders()">
+          📦 Order History
+          <span class="toggle-arrow">▼</span>
+        </button>
+        <div class="orders-content" id="ordersContent">
           <div id="ordersContainer">
-            <p style="color: var(--text-muted); margin-top: 16px;">Loading orders...</p>
+            <p style="color: var(--text-muted); padding: 20px;">Loading orders...</p>
           </div>
         </div>
       </div>
@@ -111,78 +103,98 @@
     </div>
   </section>
 
+  <!-- ===== EDIT PROFILE MODAL ===== -->
+  <div class="modal-overlay" id="editProfileModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Edit Profile</h3>
+        <button class="modal-close" onclick="closeModal('editProfileModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Display Name</label>
+          <input type="text" class="form-input" id="editName" placeholder="Your name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <input type="text" class="form-input" id="editUsername" placeholder="username">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Bio</label>
+          <textarea class="form-input" id="editBio" placeholder="Tell us about yourself..." rows="3"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">🔗 GitHub URL</label>
+          <input type="url" class="form-input" id="editGithub" placeholder="https://github.com/...">
+        </div>
+        <div class="form-group">
+          <label class="form-label">📸 Instagram URL</label>
+          <input type="url" class="form-input" id="editInstagram" placeholder="https://instagram.com/...">
+        </div>
+        <div class="form-group">
+          <label class="form-label">🌐 Website URL</label>
+          <input type="url" class="form-input" id="editWebsite" placeholder="https://...">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal('editProfileModal')">Cancel</button>
+        <button class="btn btn-primary" id="saveProfileBtn" onclick="saveProfile()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ADD/EDIT PROJECT MODAL ===== -->
+  <div class="modal-overlay" id="projectModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="projectModalTitle">Add Project</h3>
+        <button class="modal-close" onclick="closeModal('projectModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Project Title *</label>
+          <input type="text" class="form-input" id="projTitle" placeholder="e.g. Smart Robot Arm">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea class="form-input" id="projDesc" placeholder="What does your project do?" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cover Image</label>
+          <div class="image-upload-area" id="projImagePreview" onclick="document.getElementById('projImageInput').click()">
+            <span class="upload-icon">🖼️</span>
+            <span class="upload-text">Click to upload image</span>
+          </div>
+          <input type="file" id="projImageInput" accept="image/*" onchange="handleProjectImage(event)" hidden>
+          <p class="form-hint">Or paste an image URL below:</p>
+          <input type="url" class="form-input" id="projImageUrl" placeholder="https://..." style="margin-top:6px">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tags</label>
+          <input type="text" class="form-input" id="projTags" placeholder="ESP32, Arduino, IoT (comma-separated)">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal('projectModal')">Cancel</button>
+        <button class="btn btn-primary" id="saveProjectBtn" onclick="saveProject()">Save Project</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="auth-guard.js"></script>
-  <script src="app.js"></script>
+  <script src="app.js?v=2"></script>
+  <script src="profile.js?v=1"></script>
   <script>
-    function updateCartCount() {
+    // Cart count
+    (function(){
       const cart = JSON.parse(localStorage.getItem('estl_cart') || '[]');
-      const total = cart.reduce((sum, item) => sum + item.qty, 0);
       const el = document.getElementById('cartCount');
-      if(el) el.innerText = total;
-    }
-    document.addEventListener('DOMContentLoaded', updateCartCount);
-
-    firebase.auth().onAuthStateChanged((user) => {
-      if (user) {
-        document.getElementById('profileName').innerText = user.displayName || "Engineer";
-        document.getElementById('profileEmail').innerText = user.email;
-        loadOrders(user.uid);
-      }
-    });
-
-    function loadOrders(uid) {
-      firebase.database().ref(`users/${uid}/orders`).once('value').then(snap => {
-        const container = document.getElementById('ordersContainer');
-        if(!snap.exists()) {
-          container.innerHTML = `<p style="color: var(--text-muted); margin-top: 16px;">You haven't placed any orders yet.</p>`;
-          return;
-        }
-
-        container.innerHTML = '';
-        const orders = snap.val();
-        
-        // Sort by date descending
-        const sortedOrderKeys = Object.keys(orders).sort((a,b) => new Date(orders[b].date) - new Date(orders[a].date));
-
-        sortedOrderKeys.forEach(key => {
-          const order = orders[key];
-          const date = new Date(order.date).toLocaleDateString();
-          
-          let itemsHtml = '';
-          order.items.forEach(item => {
-            itemsHtml += `
-              <div class="order-item">
-                <span>${item.qty}x ${item.name}</span>
-                <span>$${(item.price * item.qty).toFixed(2)}</span>
-              </div>
-            `;
-          });
-
-          container.innerHTML += `
-            <div class="card order-card">
-              <div class="order-header">
-                <div>
-                  <strong>Order #${key.slice(-6)}</strong>
-                  <div style="font-size: 12px; color: var(--text-muted); margin-top:4px;">${date}</div>
-                </div>
-                <div>
-                  <span class="badge badge-primary">${order.status || 'Processing'}</span>
-                </div>
-              </div>
-              <div style="margin-bottom: 12px;">
-                ${itemsHtml}
-              </div>
-              <div style="border-top: 1px solid var(--border); padding-top: 12px; text-align: right; font-weight: bold;">
-                Total: $${order.total.toFixed(2)}
-              </div>
-            </div>
-          `;
-        });
-      });
-    }
+      if(el) el.innerText = cart.reduce((s, i) => s + i.qty, 0);
+    })();
   </script>
 </body>
 </html>
