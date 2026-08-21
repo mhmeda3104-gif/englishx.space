@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ESTL - Practice Center</title>
+  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="icon" type="image/png" href="logo.png">
+  <style>
+    .practice-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+      margin-top: 40px;
+    }
+    .practice-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 30px 24px;
+      text-align: center;
+      transition: var(--transition);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .practice-card:hover {
+      transform: translateY(-5px);
+      border-color: var(--primary);
+      box-shadow: var(--shadow-glow);
+    }
+    .practice-icon {
+      font-size: 48px;
+      margin-bottom: 20px;
+    }
+    .practice-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+    }
+    .practice-desc {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-bottom: 24px;
+      flex-grow: 1;
+    }
+    .practice-btn {
+      width: 100%;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar" id="navbar">
+    <a href="index.html" class="navbar-brand">
+      <div class="brand-icon"><img src="logo.png" alt="ESTL Logo"></div>
+      <span class="brand-text" style="text-transform:uppercase; font-size: 22px;">ESTL Store</span>
+    </a>
+    
+    <ul class="nav-links" style="position:absolute; left:50%; transform:translateX(-50%);">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="shop.html">Shop</a></li>
+      <li><a href="members.html">Members</a></li>
+      <li><a href="practice.html" class="active">Practice</a></li>
+      <li><a href="ai-builder.html">AI Builder</a></li>
+    </ul>
+
+    <div class="nav-actions" style="display:flex; align-items:center; gap:20px;">
+      <a href="profile.html" title="Profile" style="color:var(--text-primary); transition: opacity 0.3s;" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+      </a>
+      <a href="cart.html" title="Cart" style="color:var(--text-primary); position:relative; transition: opacity 0.3s;" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+        <span id="cartCount" style="position:absolute; top:-8px; right:-10px; background:red; color:white; font-size:11px; font-weight:bold; border-radius:50%; width:18px; height:18px; display:flex; align-items:center; justify-content:center;">0</span>
+      </a>
+      <button id="themeToggleBtn" aria-label="Toggle Theme" onclick="toggleTheme()" style="background:transparent; border:none; color:var(--text-primary); cursor:pointer; font-size:18px;">🌙</button>
+    </div>
+  </nav>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <section class="section" style="padding-top: 120px;">
+    <div class="container">
+      <div style="text-align: center; margin-bottom: 40px;">
+        <h1 class="section-title">Practice <span class="gradient-text">Center</span></h1>
+        <p class="section-subtitle">شحذ مهاراتك من خلال تمارين وتحديات تفاعلية.</p>
+      </div>
+
+      <div class="practice-grid">
+        <!-- Card 1 -->
+        <div class="practice-card">
+          <div class="practice-icon">⌨️</div>
+          <h3 class="practice-title">سرعة الكتابة (Typing Speed)</h3>
+          <p class="practice-desc">اختبر وحسّن سرعة كتابتك للأكواد والكلمات التقنية بسرعة ودقة.</p>
+          <a href="#" class="btn btn-primary practice-btn" onclick="showToast('سيتم إطلاق هذا التمرين قريباً!', 'info')">Start Practice</a>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="practice-card">
+          <div class="practice-icon">🐛</div>
+          <h3 class="practice-title">اكتشاف الأخطاء (Debugging)</h3>
+          <p class="practice-desc">تمرن على إيجاد الأخطاء البرمجية في الأكواد الجاهزة (C++, Python).</p>
+          <a href="#" class="btn btn-primary practice-btn" onclick="showToast('سيتم إطلاق هذا التمرين قريباً!', 'info')">Start Practice</a>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="practice-card">
+          <div class="practice-icon">⚡</div>
+          <h3 class="practice-title">تجميع الدوائر (Circuits)</h3>
+          <p class="practice-desc">تحديات تركيب أسلاك ولوحات الأردوينو بشكل صحيح.</p>
+          <a href="#" class="btn btn-primary practice-btn" onclick="showToast('سيتم إطلاق هذا التمرين قريباً!', 'info')">Start Practice</a>
+        </div>
+        
+        <!-- Card 4 -->
+        <div class="practice-card">
+          <div class="practice-icon">🧠</div>
+          <h3 class="practice-title">المنطق البرمجي (Logic Test)</h3>
+          <p class="practice-desc">تمارين ذهنية لحل المشكلات والخوارزميات بشكل أسرع.</p>
+          <a href="#" class="btn btn-primary practice-btn" onclick="showToast('سيتم إطلاق هذا التمرين قريباً!', 'info')">Start Practice</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Firebase & App Logic -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
