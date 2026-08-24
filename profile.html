@@ -3,11 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>My Portfolio - ESTL Tech</title>
-  <meta name="description" content="Your personal portfolio on ESTL — showcase your robotics and embedded systems projects.">
-  <link rel="stylesheet" href="style.css?v=5">
-  <link rel="stylesheet" href="auth.css?v=2">
-  <link rel="stylesheet" href="profile.css?v=1">
+  <title>Portfolio - ESTL Tech</title>
+  <link rel="stylesheet" href="style.css?v=6">
+  <link rel="stylesheet" href="auth.css?v=3">
+  <link rel="stylesheet" href="profile.css?v=3">
   <link rel="icon" type="image/png" href="logo.png">
 </head>
 <body>
@@ -32,7 +31,6 @@
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
         <span id="cartCount" style="position:absolute; top:-8px; right:-10px; background:red; color:white; font-size:11px; font-weight:bold; border-radius:50%; width:18px; height:18px; display:flex; align-items:center; justify-content:center;">0</span>
       </a>
-      <button id="themeToggleBtn" aria-label="Toggle Theme" onclick="toggleTheme()" style="background:transparent; border:none; color:var(--text-primary); cursor:pointer; font-size:18px;">🌙</button>
     </div>
   </nav>
 
@@ -42,11 +40,19 @@
   <section class="section profile-section">
     <div class="container profile-container">
 
+      <!-- Cover Photo -->
+      <div class="cover-photo-wrap" id="coverPhotoPreview">
+        <div class="cover-upload-hint owner-only" onclick="document.getElementById('coverInput').click()">
+          📷 Change Cover
+        </div>
+        <input type="file" id="coverInput" accept="image/*" onchange="handleCoverUpload(event)" hidden>
+      </div>
+
       <!-- Profile Hero Card -->
       <div class="card profile-hero">
         <div class="profile-avatar-wrap">
           <div class="profile-avatar" id="profileAvatar" onclick="triggerAvatarUpload()">👤</div>
-          <div class="avatar-upload-hint" onclick="triggerAvatarUpload()">📷</div>
+          <div class="avatar-upload-hint owner-only" onclick="triggerAvatarUpload()">📷</div>
           <input type="file" id="avatarInput" accept="image/*" onchange="handleAvatarUpload(event)" hidden>
         </div>
         <div class="profile-details">
@@ -54,10 +60,14 @@
           <p class="profile-username" id="profileUsername">@...</p>
           <p class="profile-bio" id="profileBio">Loading bio...</p>
           <div class="profile-socials" id="profileSocials"></div>
+          
+          <div class="skills-section" id="skillsContainer">
+            <!-- Skills populated dynamically -->
+          </div>
+          <button class="btn btn-ghost owner-only" style="margin-top: 10px; font-size: 12px; padding: 4px 10px;" onclick="openModal('addSkillModal')">+ Add Skill</button>
         </div>
         <div class="profile-actions owner-only">
-          <button class="btn btn-ghost" style="padding:8px 18px; font-size:13px;" onclick="openModal('editProfileModal')">✏️ Edit Profile</button>
-          <button class="btn btn-ghost" style="padding:8px 18px; font-size:13px;" onclick="logoutUser()">Sign Out</button>
+          <button class="btn btn-ghost" style="padding:8px 18px; font-size:13px;" onclick="openModal('editProfileModal')">✏️ Edit Details</button>
         </div>
       </div>
 
@@ -79,37 +89,31 @@
 
       <!-- Projects Section -->
       <div class="projects-header">
-        <h2>🚀 My Projects</h2>
+        <h2>🚀 Portfolio Projects</h2>
         <button class="btn btn-primary owner-only" style="padding:10px 24px; font-size:14px;" onclick="openProjectModal()">+ Add Project</button>
       </div>
       <div class="projects-grid" id="projectsGrid">
-        <div class="add-project-card" onclick="openProjectModal()">
+        <div class="add-project-card owner-only" onclick="openProjectModal()">
           <div class="add-icon">+</div>
-          <span>Add your first project</span>
-        </div>
-      </div>
-
-      <!-- Order History (Collapsible) -->
-      <div class="orders-section">
-        <button class="orders-toggle" id="ordersToggle" onclick="toggleOrders()">
-          📦 Order History
-          <span class="toggle-arrow">▼</span>
-        </button>
-        <div class="orders-content" id="ordersContent">
-          <div id="ordersContainer">
-            <p style="color: var(--text-muted); padding: 20px;">Loading orders...</p>
-          </div>
+          <span>Add a project to showcase</span>
         </div>
       </div>
 
     </div>
   </section>
 
+  <!-- ===== BUILDER TOOLBAR (OWNER ONLY) ===== -->
+  <div class="portfolio-builder-toolbar owner-only" id="builderToolbar" style="display: none;">
+    <button class="toolbar-btn" onclick="openModal('themeModal')">🎨 Themes</button>
+    <button class="toolbar-btn primary" onclick="sharePortfolio()">🔗 Copy Portfolio Link</button>
+    <button class="toolbar-btn" style="color:var(--danger)" onclick="logoutUser()">Sign Out</button>
+  </div>
+
   <!-- ===== EDIT PROFILE MODAL ===== -->
   <div class="modal-overlay" id="editProfileModal">
     <div class="modal">
       <div class="modal-header">
-        <h3>Edit Profile</h3>
+        <h3>Edit Details</h3>
         <button class="modal-close" onclick="closeModal('editProfileModal')">✕</button>
       </div>
       <div class="modal-body">
@@ -145,6 +149,46 @@
     </div>
   </div>
 
+  <!-- ===== THEME SELECTION MODAL ===== -->
+  <div class="modal-overlay" id="themeModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Choose Portfolio Theme</h3>
+        <button class="modal-close" onclick="closeModal('themeModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="color:var(--text-muted); margin-bottom:20px;">حدد شكل البورتفوليو الخاص بك الذي سيراه الزوار.</p>
+        <div class="theme-selector">
+          <div class="theme-card" style="background: #faf9f5; border: 2px solid #ccc;" onclick="applyTheme('classic')" title="Classic Light"></div>
+          <div class="theme-card" style="background: #0a0a0f; border: 2px solid #333;" onclick="applyTheme('cyberpunk')" title="Dark Cyberpunk"></div>
+          <div class="theme-card" style="background: #000a00; border: 2px solid #00ff00;" onclick="applyTheme('matrix')" title="Matrix Green"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="saveTheme()">Apply Theme</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ADD SKILL MODAL ===== -->
+  <div class="modal-overlay" id="addSkillModal">
+    <div class="modal" style="max-width: 400px;">
+      <div class="modal-header">
+        <h3>Add Skill / Tool</h3>
+        <button class="modal-close" onclick="closeModal('addSkillModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Skill Name (e.g., Arduino, PCB Design)</label>
+          <input type="text" class="form-input" id="newSkillInput" placeholder="Skill name">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="addSkill()">Add</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== ADD/EDIT PROJECT MODAL ===== -->
   <div class="modal-overlay" id="projectModal">
     <div class="modal">
@@ -162,14 +206,8 @@
           <textarea class="form-input" id="projDesc" placeholder="What does your project do?" rows="3"></textarea>
         </div>
         <div class="form-group">
-          <label class="form-label">Cover Image</label>
-          <div class="image-upload-area" id="projImagePreview" onclick="document.getElementById('projImageInput').click()">
-            <span class="upload-icon">🖼️</span>
-            <span class="upload-text">Click to upload image</span>
-          </div>
-          <input type="file" id="projImageInput" accept="image/*" onchange="handleProjectImage(event)" hidden>
-          <p class="form-hint">Or paste an image URL below:</p>
-          <input type="url" class="form-input" id="projImageUrl" placeholder="https://..." style="margin-top:6px">
+          <label class="form-label">Cover Image URL</label>
+          <input type="url" class="form-input" id="projImageUrl" placeholder="https://...">
         </div>
         <div class="form-group">
           <label class="form-label">Tags</label>
@@ -187,16 +225,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-  <script src="auth-guard.js"></script>
   <script src="app.js?v=2"></script>
-  <script src="profile.js?v=2"></script>
-  <script>
-    // Cart count
-    (function(){
-      const cart = JSON.parse(localStorage.getItem('estl_cart') || '[]');
-      const el = document.getElementById('cartCount');
-      if(el) el.innerText = cart.reduce((s, i) => s + i.qty, 0);
-    })();
-  </script>
+  <script src="profile.js?v=3"></script>
 </body>
 </html>

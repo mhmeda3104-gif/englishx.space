@@ -1,13 +1,14 @@
-// profile.js — Portfolio Profile Page Logic
+// profile.js - Advanced Portfolio Builder
 
 let currentUser = null;
 let userRef = null;
 let isOwner = false;
 let targetUid = null;
+let profileData = {};
 
 document.addEventListener('DOMContentLoaded', () => {
   const urlParams = new URLSearchParams(window.location.search);
-  const viewUserId = urlParams.get('id');
+  const viewUserId = urlParams.get('user'); // Changed from id to user as requested
 
   firebase.auth().onAuthStateChanged(user => {
     if (user) currentUser = user;
@@ -18,7 +19,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (sessionStorage.getItem('guestMode') === 'true') {
         showGuestState();
       } else {
-        // Not guest, not logged in, no ID -> go to auth
         window.location.href = 'auth.html';
       }
       return;
@@ -27,14 +27,11 @@ document.addEventListener('DOMContentLoaded', () => {
     isOwner = (user && user.uid === targetUid);
     userRef = firebase.database().ref('users/' + targetUid);
 
-    // Hide owner-only elements if not owner
-    if (!isOwner) {
-      document.querySelectorAll('.owner-only').forEach(el => el.style.display = 'none');
-      const orderSec = document.querySelector('.orders-section');
-      if (orderSec) orderSec.style.display = 'none';
-      const avatarHint = document.querySelector('.avatar-upload-hint');
-      if (avatarHint) avatarHint.style.display = 'none';
-      document.getElementById('profileAvatar').style.cursor = 'default';
+    if (isOwner && !viewUserId) {
+      document.body.classList.add('owner-view');
+      document.getElementById('builderToolbar').style.display = 'flex';
+    } else {
+      document.body.classList.remove('owner-view');
     }
 
     loadProfileData();
@@ -43,21 +40,43 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-// ===================== PROFILE =====================
+// ===================== PROFILE LOADING =====================
 
 function loadProfileData() {
-  userRef.once('value').then(snapshot => {
+  userRef.on('value', snapshot => {
     if (!snapshot.exists()) {
       setText('profileName', 'User Not Found');
       setText('profileUsername', '');
       setText('profileBio', 'This user does not exist or has no data.');
       return;
     }
+    
     const d = snapshot.val();
+    profileData = d;
 
-    setText('profileName', d.name || 'Space Learner');
+    // Apply Theme
+    document.body.className = document.body.className.replace(/theme-\w+/g, '').trim();
+    if(d.theme) {
+      document.body.classList.add('theme-' + d.theme);
+      if(isOwner) {
+        document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('active'));
+        const activeCard = document.querySelector(`.theme-card[onclick*="${d.theme}"]`);
+        if(activeCard) activeCard.classList.add('active');
+      }
+    }
+
+    // Cover Photo
+    const coverEl = document.getElementById('coverPhotoPreview');
+    if (d.coverPhoto) {
+      coverEl.style.backgroundImage = `url('${d.coverPhoto}')`;
+    } else {
+      coverEl.style.backgroundImage = 'linear-gradient(135deg, var(--bg-secondary), var(--border))';
+    }
+
+    // Basic Details
+    setText('profileName', d.name || 'Space Engineer');
     setText('profileUsername', '@' + (d.username || 'user'));
-    setText('profileBio', d.bio || 'No bio yet.');
+    setText('profileBio', d.bio || 'Building the future with ESTL.');
     setText('statProjects', Object.keys(d.projects || {}).length);
     setText('statXP', d.xp || 0);
     setText('statLevel', d.level || 1);
@@ -72,15 +91,18 @@ function loadProfileData() {
       av.textContent = '👤';
     }
 
-    // Social links
+    // Social Links
     const socialsEl = document.getElementById('profileSocials');
     socialsEl.innerHTML = '';
     const social = d.social || {};
-    if (social.github) socialsEl.innerHTML += `<a href="${esc(social.github)}" target="_blank">🔗 GitHub</a>`;
+    if (social.github) socialsEl.innerHTML += `<a href="${esc(social.github)}" target="_blank">💻 GitHub</a>`;
     if (social.instagram) socialsEl.innerHTML += `<a href="${esc(social.instagram)}" target="_blank">📸 Instagram</a>`;
     if (social.website) socialsEl.innerHTML += `<a href="${esc(social.website)}" target="_blank">🌐 Website</a>`;
 
-    // Prefill edit form (only matters if owner)
+    // Skills
+    renderSkills(d.skills || []);
+
+    // Prefill Edit Form
     if (isOwner) {
       document.getElementById('editName').value = d.name || '';
       document.getElementById('editUsername').value = d.username || '';
@@ -92,6 +114,79 @@ function loadProfileData() {
   });
 }
 
+// ===================== CUSTOMIZATION LOGIC =====================
+
+function applyTheme(themeName) {
+  document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('active'));
+  event.target.classList.add('active');
+  document.body.className = document.body.className.replace(/theme-\w+/g, '').trim();
+  document.body.classList.add('theme-' + themeName);
+  profileData.selectedTheme = themeName;
+}
+
+function saveTheme() {
+  if (!isOwner || !profileData.selectedTheme) return;
+  userRef.update({ theme: profileData.selectedTheme }).then(() => {
+    closeModal('themeModal');
+    if(window.showToast) showToast('Theme applied successfully!', 'success');
+  });
+}
+
+function handleCoverUpload(event) {
+  if (!isOwner) return;
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const dataUrl = e.target.result;
+    document.getElementById('coverPhotoPreview').style.backgroundImage = `url('${dataUrl}')`;
+    userRef.update({ coverPhoto: dataUrl }).then(() => {
+      if(window.showToast) showToast('Cover photo updated!', 'success');
+    });
+  };
+  reader.readAsDataURL(file);
+}
+
+function addSkill() {
+  if (!isOwner) return;
+  const skillName = document.getElementById('newSkillInput').value.trim();
+  if (!skillName) return;
+  
+  let skills = profileData.skills || [];
+  if (!skills.includes(skillName)) {
+    skills.push(skillName);
+    userRef.update({ skills }).then(() => {
+      document.getElementById('newSkillInput').value = '';
+      closeModal('addSkillModal');
+    });
+  }
+}
+
+function removeSkill(skillName) {
+  if (!isOwner) return;
+  let skills = profileData.skills || [];
+  skills = skills.filter(s => s !== skillName);
+  userRef.update({ skills });
+}
+
+function renderSkills(skills) {
+  const container = document.getElementById('skillsContainer');
+  container.innerHTML = '';
+  skills.forEach(skill => {
+    container.innerHTML += `<div class="skill-badge">${esc(skill)} <span class="remove-skill" onclick="removeSkill('${esc(skill)}')">×</span></div>`;
+  });
+}
+
+function sharePortfolio() {
+  const url = window.location.origin + window.location.pathname + '?user=' + targetUid;
+  navigator.clipboard.writeText(url).then(() => {
+    if(window.showToast) showToast('Portfolio link copied! Share it on Instagram 📸', 'success');
+  });
+}
+
+// ===================== BASIC PROFILE EDIT =====================
+
 function saveProfile() {
   if (!isOwner || !currentUser) return;
   const name = document.getElementById('editName').value.trim();
@@ -101,351 +196,106 @@ function saveProfile() {
   const instagram = document.getElementById('editInstagram').value.trim();
   const website = document.getElementById('editWebsite').value.trim();
 
-  if (!name || !username) {
-    if (window.showToast) showToast('Name and username are required', 'error');
-    return;
-  }
-
-  const btn = document.getElementById('saveProfileBtn');
-  btn.textContent = 'Saving...';
-  btn.disabled = true;
-
   userRef.update({
-    name,
-    username,
-    bio,
+    name, username, bio,
     social: { github, instagram, website }
   }).then(() => {
-    btn.textContent = 'Save Changes';
-    btn.disabled = false;
     closeModal('editProfileModal');
-    loadProfileData();
-    if (window.showToast) showToast('Profile updated! ✅', 'success');
+    if(window.showToast) showToast('Profile updated!', 'success');
   }).catch(err => {
-    btn.textContent = 'Save Changes';
-    btn.disabled = false;
-    console.error(err);
-    if (window.showToast) showToast('Error saving profile', 'error');
+    if(window.showToast) showToast('Error: ' + err.message, 'error');
   });
 }
 
-// ===================== AVATAR =====================
-
 function triggerAvatarUpload() {
-  if (!isOwner) return;
-  document.getElementById('avatarInput').click();
+  if (isOwner) document.getElementById('avatarInput').click();
 }
 
 function handleAvatarUpload(event) {
   if (!isOwner) return;
   const file = event.target.files[0];
   if (!file) return;
-  if (!file.type.startsWith('image/')) { showToast('Please select an image', 'error'); return; }
-  if (file.size > 5 * 1024 * 1024) { showToast('Image must be under 5MB', 'error'); return; }
-
-  showToast('Processing image... ⏳', 'info');
   const reader = new FileReader();
-  reader.onload = function(e) {
-    const img = new Image();
-    img.onload = function() {
-      const canvas = document.createElement('canvas');
-      let w = img.width, h = img.height;
-      const MAX = 250;
-      if (w > h) { if (w > MAX) { h *= MAX / w; w = MAX; } }
-      else { if (h > MAX) { w *= MAX / h; h = MAX; } }
-      canvas.width = w; canvas.height = h;
-      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-
-      userRef.update({ photoURL: dataUrl }).then(() => {
-        currentUser.updateProfile({ photoURL: dataUrl });
-        const av = document.getElementById('profileAvatar');
-        av.style.backgroundImage = `url('${dataUrl}')`;
-        av.textContent = '';
-        showToast('Avatar updated! 📷', 'success');
-      }).catch(() => showToast('Failed to save avatar', 'error'));
-    };
-    img.src = e.target.result;
+  reader.onload = (e) => {
+    userRef.update({ photoURL: e.target.result }).then(() => {
+      if(window.showToast) showToast('Avatar updated!', 'success');
+    });
   };
   reader.readAsDataURL(file);
 }
 
-// ===================== PROJECTS =====================
+// ===================== MODALS & UTILS =====================
 
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+function setText(id, text) { const el = document.getElementById(id); if (el) el.innerText = text; }
+function esc(str) {
+  if (!str) return '';
+  const div = document.createElement('div');
+  div.innerText = str;
+  return div.innerHTML;
+}
+
+// Projects logic (simplified from previous)
 function loadProjects() {
-  userRef.child('projects').once('value').then(snap => {
+  userRef.child('projects').on('value', snap => {
     const grid = document.getElementById('projectsGrid');
-    grid.innerHTML = '';
-
-    if (!snap.exists() || Object.keys(snap.val()).length === 0) {
-      if (isOwner) {
-        grid.innerHTML = `
-          <div class="add-project-card" onclick="openProjectModal()">
-            <div class="add-icon">+</div>
-            <span>Add your first project</span>
+    // keep add button if owner
+    grid.innerHTML = isOwner ? `<div class="add-project-card owner-only" onclick="openProjectModal()"><div class="add-icon">+</div><span>Add project</span></div>` : '';
+    
+    if (snap.exists()) {
+      snap.forEach(child => {
+        const p = child.val();
+        const pKey = child.key;
+        grid.innerHTML += `
+          <div class="project-card">
+            <div class="proj-img" style="background-image:url('${p.image || ''}')"></div>
+            <div class="proj-info">
+              <h3>${esc(p.title)}</h3>
+              <p>${esc(p.description)}</p>
+              ${isOwner ? `<button class="btn btn-ghost" onclick="deleteProject('${pKey}')" style="margin-top:10px; color:var(--danger)">Delete</button>` : ''}
+            </div>
           </div>
         `;
-      } else {
-        grid.innerHTML = `<div class="empty-projects"><div class="empty-icon">📭</div><p>This user hasn't added any projects yet.</p></div>`;
-      }
-      setText('statProjects', 0);
-      return;
-    }
-
-    const projects = snap.val();
-    const keys = Object.keys(projects).sort((a, b) => (projects[b].createdAt || 0) - (projects[a].createdAt || 0));
-    setText('statProjects', keys.length);
-
-    keys.forEach(key => {
-      const p = projects[key];
-      grid.innerHTML += buildProjectCard(key, p);
-    });
-
-    if (isOwner) {
-      grid.innerHTML += `
-        <div class="add-project-card" onclick="openProjectModal()">
-          <div class="add-icon">+</div>
-          <span>Add new project</span>
-        </div>
-      `;
+      });
+    } else if (!isOwner) {
+      grid.innerHTML = '<p style="color:var(--text-muted); grid-column:1/-1;">No projects added yet.</p>';
     }
   });
 }
 
-function buildProjectCard(key, p) {
-  const tags = (p.tags || []).map(t => `<span class="project-tag">${esc(t)}</span>`).join('');
-  const date = p.createdAt ? new Date(p.createdAt).toLocaleDateString() : '';
-  const cover = p.image
-    ? `<img class="project-cover" src="${esc(p.image)}" alt="${esc(p.title)}" onerror="this.outerHTML='<div class=\\'project-cover-placeholder\\'>🚀</div>'">`
-    : `<div class="project-cover-placeholder">🚀</div>`;
-
-  const actions = isOwner ? `
-    <div class="project-actions">
-      <button onclick="editProject('${key}')" title="Edit">✏️</button>
-      <button class="delete-btn" onclick="deleteProject('${key}')" title="Delete">🗑️</button>
-    </div>
-  ` : '';
-
-  return `
-    <div class="card project-card">
-      ${cover}
-      <div class="project-body">
-        <h3 class="project-title">${esc(p.title || 'Untitled')}</h3>
-        <p class="project-desc">${esc(p.description || '')}</p>
-        <div class="project-tags">${tags}</div>
-        <div class="project-meta">
-          <span class="project-date">${date}</span>
-          ${actions}
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-let editingProjectKey = null;
-let projectImageData = '';
-
-function openProjectModal(prefill) {
-  if (!isOwner) return;
-  editingProjectKey = prefill ? prefill.key : null;
-  document.getElementById('projectModalTitle').textContent = editingProjectKey ? 'Edit Project' : 'Add Project';
-  document.getElementById('projTitle').value = prefill ? prefill.title : '';
-  document.getElementById('projDesc').value = prefill ? prefill.description : '';
-  document.getElementById('projTags').value = prefill ? (prefill.tags || []).join(', ') : '';
-  document.getElementById('projImageUrl').value = prefill ? (prefill.image || '') : '';
-  projectImageData = '';
-
-  const area = document.getElementById('projImagePreview');
-  if (prefill && prefill.image) {
-    area.style.backgroundImage = `url('${prefill.image}')`;
-    area.classList.add('has-image');
-  } else {
-    area.style.backgroundImage = '';
-    area.classList.remove('has-image');
-  }
-
+let editProjectId = null;
+function openProjectModal(id = null) {
+  editProjectId = id;
+  document.getElementById('projTitle').value = '';
+  document.getElementById('projDesc').value = '';
+  document.getElementById('projImageUrl').value = '';
+  document.getElementById('projTags').value = '';
   openModal('projectModal');
 }
 
-function handleProjectImage(event) {
-  if (!isOwner) return;
-  const file = event.target.files[0];
-  if (!file) return;
-  if (!file.type.startsWith('image/')) { showToast('Select an image file', 'error'); return; }
-  if (file.size > 5 * 1024 * 1024) { showToast('Image must be under 5MB', 'error'); return; }
-
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const img = new Image();
-    img.onload = function() {
-      const canvas = document.createElement('canvas');
-      let w = img.width, h = img.height;
-      const MAX_W = 600, MAX_H = 400;
-      const ratio = Math.min(MAX_W / w, MAX_H / h, 1);
-      w = Math.round(w * ratio);
-      h = Math.round(h * ratio);
-      canvas.width = w; canvas.height = h;
-      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      projectImageData = canvas.toDataURL('image/jpeg', 0.75);
-
-      const area = document.getElementById('projImagePreview');
-      area.style.backgroundImage = `url('${projectImageData}')`;
-      area.classList.add('has-image');
-      document.getElementById('projImageUrl').value = '';
-    };
-    img.src = e.target.result;
-  };
-  reader.readAsDataURL(file);
-}
-
 function saveProject() {
-  if (!isOwner || !currentUser) return;
   const title = document.getElementById('projTitle').value.trim();
-  const description = document.getElementById('projDesc').value.trim();
-  const tagsRaw = document.getElementById('projTags').value.trim();
-  const imageUrl = document.getElementById('projImageUrl').value.trim();
-  const image = projectImageData || imageUrl || '';
-  const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
-
-  if (!title) { showToast('Project title is required', 'error'); return; }
-
-  const btn = document.getElementById('saveProjectBtn');
-  btn.textContent = 'Saving...';
-  btn.disabled = true;
-
-  const data = { title, description, image, tags, createdAt: Date.now() };
-
-  let promise;
-  if (editingProjectKey) {
-    data.createdAt = null; // preserve original date
-    promise = userRef.child('projects/' + editingProjectKey).update(data).then(() => {
-      // remove null createdAt
-      return userRef.child('projects/' + editingProjectKey + '/createdAt').once('value').then(s => {
-        if (!s.exists()) return userRef.child('projects/' + editingProjectKey).update({ createdAt: Date.now() });
-      });
-    });
-  } else {
-    promise = userRef.child('projects').push(data);
-  }
-
-  promise.then(() => {
-    btn.textContent = 'Save Project';
-    btn.disabled = false;
+  if(!title) return;
+  const desc = document.getElementById('projDesc').value.trim();
+  const image = document.getElementById('projImageUrl').value.trim();
+  
+  const projRef = editProjectId ? userRef.child('projects/' + editProjectId) : userRef.child('projects').push();
+  projRef.set({ title, description: desc, image }).then(() => {
     closeModal('projectModal');
-    loadProjects();
-    showToast(editingProjectKey ? 'Project updated! ✅' : 'Project added! 🚀', 'success');
-    editingProjectKey = null;
-    projectImageData = '';
-  }).catch(err => {
-    btn.textContent = 'Save Project';
-    btn.disabled = false;
-    console.error(err);
-    showToast('Error saving project', 'error');
+    if(window.showToast) showToast('Project saved!', 'success');
   });
 }
 
-function editProject(key) {
-  if (!isOwner) return;
-  userRef.child('projects/' + key).once('value').then(snap => {
-    if (!snap.exists()) return;
-    const p = snap.val();
-    openProjectModal({ key, ...p });
-  });
-}
-
-function deleteProject(key) {
-  if (!isOwner) return;
-  if (!confirm('Are you sure you want to delete this project?')) return;
-  userRef.child('projects/' + key).remove().then(() => {
-    loadProjects();
-    showToast('Project deleted', 'info');
-  }).catch(() => showToast('Error deleting project', 'error'));
-}
-
-// ===================== ORDERS =====================
-
-function loadOrders(uid) {
-  firebase.database().ref(`users/${uid}/orders`).once('value').then(snap => {
-    const container = document.getElementById('ordersContainer');
-    if (!snap.exists()) {
-      container.innerHTML = `<p style="color: var(--text-muted); padding: 20px;">No orders yet.</p>`;
-      return;
-    }
-    container.innerHTML = '';
-    const orders = snap.val();
-    const sorted = Object.keys(orders).sort((a, b) => new Date(orders[b].date) - new Date(orders[a].date));
-    sorted.forEach(key => {
-      const o = orders[key];
-      const date = new Date(o.date).toLocaleDateString();
-      let items = '';
-      (o.items || []).forEach(i => {
-        items += `<div class="order-item"><span>${i.qty}x ${esc(i.name)}</span><span>$${(i.price * i.qty).toFixed(2)}</span></div>`;
-      });
-      container.innerHTML += `
-        <div class="card order-card">
-          <div class="order-header">
-            <div><strong>Order #${key.slice(-6)}</strong><div style="font-size:12px;color:var(--text-muted);margin-top:4px">${date}</div></div>
-            <span class="badge badge-primary">${o.status || 'Processing'}</span>
-          </div>
-          ${items}
-          <div style="border-top:1px solid var(--border);padding-top:12px;text-align:right;font-weight:bold">Total: $${o.total.toFixed(2)}</div>
-        </div>`;
-    });
-  });
-}
-
-function toggleOrders() {
-  const btn = document.getElementById('ordersToggle');
-  const content = document.getElementById('ordersContent');
-  btn.classList.toggle('open');
-  content.classList.toggle('open');
-}
-
-// ===================== MODALS =====================
-
-function openModal(id) {
-  document.getElementById(id).classList.add('active');
-  document.body.style.overflow = 'hidden';
-}
-
-function closeModal(id) {
-  document.getElementById(id).classList.remove('active');
-  document.body.style.overflow = '';
-}
-
-// Close modal on overlay click
-document.addEventListener('click', e => {
-  if (e.target.classList.contains('modal-overlay')) {
-    e.target.classList.remove('active');
-    document.body.style.overflow = '';
+function deleteProject(id) {
+  if(confirm('Are you sure you want to delete this project?')) {
+    userRef.child('projects/' + id).remove();
   }
-});
-
-// ===================== UTILS =====================
-
-function setText(id, val) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = val;
 }
-
-function esc(str) {
-  const d = document.createElement('div');
-  d.textContent = str || '';
-  return d.innerHTML;
+function logoutUser() {
+  firebase.auth().signOut().then(() => window.location.href = 'auth.html');
 }
-
 function showGuestState() {
   setText('profileName', 'Guest User');
   setText('profileUsername', '@guest');
-  setText('profileBio', 'Sign in to create your portfolio.');
-  document.querySelectorAll('.owner-only').forEach(el => el.style.display = 'none');
-  const orderSec = document.querySelector('.orders-section');
-  if (orderSec) orderSec.style.display = 'none';
-}
-
-function logoutUser() {
-  firebase.auth().signOut().then(() => {
-    sessionStorage.removeItem('guestMode');
-    window.location.href = 'auth.html';
-  });
 }

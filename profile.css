@@ -529,3 +529,159 @@ textarea.form-input {
     max-height: 90vh;
   }
 }
+
+/* === Portfolio Builder UI === */
+.portfolio-builder-toolbar {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 12px 24px;
+  display: flex;
+  gap: 16px;
+  z-index: 1000;
+  box-shadow: var(--shadow-card);
+}
+.toolbar-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 999px;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.toolbar-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--border);
+}
+.toolbar-btn.primary {
+  background: var(--primary);
+  color: var(--text-on-primary);
+}
+
+/* === Cover Photo === */
+.cover-photo-wrap {
+  position: relative;
+  width: 100%;
+  height: 250px;
+  background: linear-gradient(135deg, var(--bg-secondary), var(--border));
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  margin-bottom: -50px;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+}
+.cover-upload-hint {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(0,0,0,0.5);
+  padding: 8px 16px;
+  border-radius: 999px;
+  color: white;
+  cursor: pointer;
+  font-size: 13px;
+  display: none;
+}
+.owner-view .cover-upload-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.profile-hero {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-top: none;
+}
+
+/* === Skills & Tools === */
+.skills-section {
+  margin-top: 32px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.skill-badge {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.skill-badge .remove-skill {
+  cursor: pointer;
+  color: var(--danger);
+  font-weight: bold;
+  display: none;
+}
+.owner-view .skill-badge .remove-skill {
+  display: inline;
+}
+
+/* === Themes === */
+.theme-selector {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+.theme-card {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: transform 0.2s;
+}
+.theme-card:hover {
+  transform: scale(1.1);
+}
+.theme-card.active {
+  border-color: var(--primary);
+  box-shadow: 0 0 15px var(--primary);
+}
+
+/* Theme specifics (CSS overrides controlled by JS class on body) */
+body.theme-matrix {
+  --bg-primary: #000a00;
+  --bg-secondary: #001a00;
+  --bg-card: #001200;
+  --primary: #00ff00;
+  --text-primary: #00ff00;
+  --text-secondary: #00aa00;
+  --border: #00aa00;
+}
+body.theme-cyberpunk {
+  --bg-primary: #0a0a0f;
+  --bg-card: #161622;
+  --primary: #00ff9d;
+  --secondary: #00d2ff;
+  --border: rgba(0, 255, 157, 0.2);
+}
+body.theme-classic {
+  --bg-primary: #faf9f5;
+  --bg-card: #ffffff;
+  --primary: #0f3b73;
+  --text-primary: #2b2b2b;
+  --border: rgba(0,0,0,0.1);
+}
+
+/* Hide elements when not owner */
+body:not(.owner-view) .owner-only {
+  display: none !important;
+}
