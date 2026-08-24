@@ -72,29 +72,25 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
-      const usernameQuery = urlParams.get('u');
+      const uidQuery = urlParams.get('id');
       
-      if (!usernameQuery) {
-        document.getElementById('profileName').innerText = "User Not Found";
-        document.getElementById('profileBio').innerText = "Invalid portfolio link.";
+      if (!uidQuery) {
+        document.getElementById('profileName').innerText = "Invalid Link";
+        document.getElementById('profileBio').innerText = "Please provide a valid user ID.";
         return;
       }
 
-      firebase.database().ref('users').once('value').then(snapshot => {
-        let foundUser = null;
-        snapshot.forEach(child => {
-          const data = child.val();
-          if (data.username && data.username.toLowerCase() === usernameQuery.toLowerCase()) {
-            foundUser = { uid: child.key, ...data };
-          }
-        });
-
-        if (foundUser) {
-          renderPortfolio(foundUser);
+      firebase.database().ref('users/' + uidQuery).once('value').then(snapshot => {
+        if (snapshot.exists()) {
+          const d = snapshot.val();
+          renderPortfolio(d);
         } else {
           document.getElementById('profileName').innerText = "User Not Found";
-          document.getElementById('profileBio').innerText = "No engineer found with this username.";
+          document.getElementById('profileBio').innerText = "No engineer found with this link.";
         }
+      }).catch(err => {
+        document.getElementById('profileName').innerText = "Error Loading Data";
+        document.getElementById('profileBio').innerText = err.message + " (Please log in or check permissions)";
       });
     });
 
