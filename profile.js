@@ -1,5 +1,15 @@
 // profile.js - Advanced Portfolio Builder
 
+const firebaseConfig = {
+  apiKey: "AIzaSyBydQb6wDh4X7JA0JkcuhToJam66VD3bTM",
+  authDomain: "englishx-ed1c6.firebaseapp.com",
+  projectId: "englishx-ed1c6",
+  storageBucket: "englishx-ed1c6.firebasestorage.app",
+  messagingSenderId: "570756105739",
+  appId: "1:570756105739:web:69c4b5edd62cc34c56290e"
+};
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+
 let currentUser = null;
 let userRef = null;
 let isOwner = false;
@@ -36,7 +46,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     loadProfileData();
     loadProjects();
-    if (isOwner) loadOrders(targetUid);
   });
 });
 
