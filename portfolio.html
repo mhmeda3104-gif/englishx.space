@@ -105,14 +105,14 @@
 
       const coverEl = document.getElementById('coverPhotoPreview');
       if (d.coverPhoto) {
-        coverEl.style.backgroundImage = \`url('\${d.coverPhoto}')\`;
+        coverEl.style.backgroundImage = `url('${d.coverPhoto}')`;
       } else {
         coverEl.style.backgroundImage = 'linear-gradient(135deg, var(--bg-secondary), var(--border))';
       }
 
       const av = document.getElementById('profileAvatar');
       if (d.photoURL) {
-        av.style.backgroundImage = \`url('\${d.photoURL}')\`;
+        av.style.backgroundImage = `url('${d.photoURL}')`;
         av.textContent = '';
       }
 
@@ -123,15 +123,15 @@
       const socialsEl = document.getElementById('profileSocials');
       socialsEl.innerHTML = '';
       const social = d.social || {};
-      if (social.github) socialsEl.innerHTML += \`<a href="\${esc(social.github)}" target="_blank">💻 GitHub</a>\`;
-      if (social.instagram) socialsEl.innerHTML += \`<a href="\${esc(social.instagram)}" target="_blank">📸 Instagram</a>\`;
-      if (social.website) socialsEl.innerHTML += \`<a href="\${esc(social.website)}" target="_blank">🌐 Website</a>\`;
+      if (social.github) socialsEl.innerHTML += `<a href="${esc(social.github)}" target="_blank">💻 GitHub</a>`;
+      if (social.instagram) socialsEl.innerHTML += `<a href="${esc(social.instagram)}" target="_blank">📸 Instagram</a>`;
+      if (social.website) socialsEl.innerHTML += `<a href="${esc(social.website)}" target="_blank">🌐 Website</a>`;
 
       const skillsContainer = document.getElementById('skillsContainer');
       skillsContainer.innerHTML = '';
       if (d.skills) {
         d.skills.forEach(skill => {
-          skillsContainer.innerHTML += \`<div class="skill-badge">\${esc(skill)}</div>\`;
+          skillsContainer.innerHTML += `<div class="skill-badge">${esc(skill)}</div>`;
         });
       }
 
@@ -139,15 +139,15 @@
       grid.innerHTML = '';
       if (d.projects) {
         Object.values(d.projects).forEach(p => {
-          grid.innerHTML += \`
+          grid.innerHTML += `
             <div class="project-card">
-              <div class="proj-img" style="background-image:url('\${p.image || ''}')"></div>
+              <div class="proj-img" style="background-image:url('${p.image || ''}')"></div>
               <div class="proj-info">
-                <h3>\${esc(p.title)}</h3>
-                <p>\${esc(p.description)}</p>
+                <h3>${esc(p.title)}</h3>
+                <p>${esc(p.description)}</p>
               </div>
             </div>
-          \`;
+          `;
         });
       } else {
         grid.innerHTML = '<p style="color:var(--text-muted); grid-column:1/-1;">No projects added yet.</p>';
