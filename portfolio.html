@@ -57,6 +57,7 @@
   </div>
 
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="app.js?v=2"></script>
   <script>
@@ -81,16 +82,21 @@
       }
 
       firebase.database().ref('users/' + uidQuery).once('value').then(snapshot => {
-        if (snapshot.exists()) {
-          const d = snapshot.val();
-          renderPortfolio(d);
-        } else {
-          document.getElementById('profileName').innerText = "User Not Found";
-          document.getElementById('profileBio').innerText = "No engineer found with this link.";
+        try {
+          if (snapshot.exists()) {
+            const d = snapshot.val();
+            renderPortfolio(d);
+          } else {
+            document.getElementById('profileName').innerText = "User Not Found";
+            document.getElementById('profileBio').innerText = "No engineer found with this link.";
+          }
+        } catch(renderErr) {
+          document.getElementById('profileName').innerText = "Render Error";
+          document.getElementById('profileBio').innerText = renderErr.message;
         }
       }).catch(err => {
         document.getElementById('profileName').innerText = "Error Loading Data";
-        document.getElementById('profileBio').innerText = err.message + " (Please log in or check permissions)";
+        document.getElementById('profileBio').innerText = err.message + " (Permission Denied)";
       });
     });
 
