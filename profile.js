@@ -179,7 +179,8 @@ function renderSkills(skills) {
 }
 
 function sharePortfolio() {
-  const url = window.location.origin + window.location.pathname + '?user=' + targetUid;
+  const username = profileData.username || targetUid;
+  const url = window.location.origin + '/portfolio.html?u=' + username;
   navigator.clipboard.writeText(url).then(() => {
     if(window.showToast) showToast('Portfolio link copied! Share it on Instagram 📸', 'success');
   });

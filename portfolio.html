@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Engineer Portfolio</title>
+  <link rel="stylesheet" href="style.css?v=6">
+  <link rel="stylesheet" href="profile.css?v=3">
+  <link rel="icon" type="image/png" href="logo.png">
+  <style>
+    body { padding-top: 0; }
+    .navbar { display: none !important; }
+    .profile-section { padding-top: 0; }
+    .portfolio-footer {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+    .portfolio-footer a {
+      color: var(--primary);
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  
+  <div class="toast-container" id="toastContainer"></div>
+
+  <section class="section profile-section">
+    <div class="container profile-container" style="margin-top:0;">
+      <div class="cover-photo-wrap" id="coverPhotoPreview" style="border-radius: 0 0 20px 20px;"></div>
+      <div class="card profile-hero" style="border-top: none;">
+        <div class="profile-avatar-wrap">
+          <div class="profile-avatar" id="profileAvatar">👤</div>
+        </div>
+        <div class="profile-details">
+          <h1 class="profile-name" id="profileName">Loading...</h1>
+          <p class="profile-username" id="profileUsername">@...</p>
+          <p class="profile-bio" id="profileBio">Loading portfolio...</p>
+          <div class="profile-socials" id="profileSocials"></div>
+          <div class="skills-section" id="skillsContainer"></div>
+        </div>
+      </div>
+
+      <div class="projects-header" style="margin-top:40px;">
+        <h2>🚀 Featured Projects</h2>
+      </div>
+      <div class="projects-grid" id="projectsGrid">
+        <p style="color:var(--text-muted); padding:20px;">Loading projects...</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="portfolio-footer">
+    Powered by <a href="index.html">ESTL Tech</a>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="app.js?v=2"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const usernameQuery = urlParams.get('u');
+      
+      if (!usernameQuery) {
+        document.getElementById('profileName').innerText = "User Not Found";
+        document.getElementById('profileBio').innerText = "Invalid portfolio link.";
+        return;
+      }
+
+      firebase.database().ref('users').once('value').then(snapshot => {
+        let foundUser = null;
+        snapshot.forEach(child => {
+          const data = child.val();
+          if (data.username && data.username.toLowerCase() === usernameQuery.toLowerCase()) {
+            foundUser = { uid: child.key, ...data };
+          }
+        });
+
+        if (foundUser) {
+          renderPortfolio(foundUser);
+        } else {
+          document.getElementById('profileName').innerText = "User Not Found";
+          document.getElementById('profileBio').innerText = "No engineer found with this username.";
+        }
+      });
+    });
+
+    function renderPortfolio(d) {
+      if(d.theme) document.body.classList.add('theme-' + d.theme);
+
+      const coverEl = document.getElementById('coverPhotoPreview');
+      if (d.coverPhoto) {
+        coverEl.style.backgroundImage = \`url('\${d.coverPhoto}')\`;
+      } else {
+        coverEl.style.backgroundImage = 'linear-gradient(135deg, var(--bg-secondary), var(--border))';
+      }
+
+      const av = document.getElementById('profileAvatar');
+      if (d.photoURL) {
+        av.style.backgroundImage = \`url('\${d.photoURL}')\`;
+        av.textContent = '';
+      }
+
+      document.getElementById('profileName').innerText = d.name || 'Space Engineer';
+      document.getElementById('profileUsername').innerText = '@' + (d.username || 'user');
+      document.getElementById('profileBio').innerText = d.bio || '';
+
+      const socialsEl = document.getElementById('profileSocials');
+      socialsEl.innerHTML = '';
+      const social = d.social || {};
+      if (social.github) socialsEl.innerHTML += \`<a href="\${esc(social.github)}" target="_blank">💻 GitHub</a>\`;
+      if (social.instagram) socialsEl.innerHTML += \`<a href="\${esc(social.instagram)}" target="_blank">📸 Instagram</a>\`;
+      if (social.website) socialsEl.innerHTML += \`<a href="\${esc(social.website)}" target="_blank">🌐 Website</a>\`;
+
+      const skillsContainer = document.getElementById('skillsContainer');
+      skillsContainer.innerHTML = '';
+      if (d.skills) {
+        d.skills.forEach(skill => {
+          skillsContainer.innerHTML += \`<div class="skill-badge">\${esc(skill)}</div>\`;
+        });
+      }
+
+      const grid = document.getElementById('projectsGrid');
+      grid.innerHTML = '';
+      if (d.projects) {
+        Object.values(d.projects).forEach(p => {
+          grid.innerHTML += \`
+            <div class="project-card">
+              <div class="proj-img" style="background-image:url('\${p.image || ''}')"></div>
+              <div class="proj-info">
+                <h3>\${esc(p.title)}</h3>
+                <p>\${esc(p.description)}</p>
+              </div>
+            </div>
+          \`;
+        });
+      } else {
+        grid.innerHTML = '<p style="color:var(--text-muted); grid-column:1/-1;">No projects added yet.</p>';
+      }
+    }
+
+    function esc(str) {
+      if (!str) return '';
+      const div = document.createElement('div');
+      div.innerText = str;
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>
