@@ -52,75 +52,98 @@ document.addEventListener('DOMContentLoaded', () => {
 // ===================== PROFILE LOADING =====================
 
 function loadProfileData() {
-  userRef.on('value', snapshot => {
-    if (!snapshot.exists()) {
-      setText('profileName', 'User Not Found');
-      setText('profileUsername', '');
-      setText('profileBio', 'This user does not exist or has no data.');
-      return;
-    }
-    
-    const d = snapshot.val();
-    profileData = d;
-
-    // Apply Theme
-    document.body.className = document.body.className.replace(/theme-\w+/g, '').trim();
-    if(d.theme) {
-      document.body.classList.add('theme-' + d.theme);
-      if(isOwner) {
-        document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('active'));
-        const activeCard = document.querySelector(`.theme-card[onclick*="${d.theme}"]`);
-        if(activeCard) activeCard.classList.add('active');
+  try {
+    userRef.on('value', snapshot => {
+      if (!snapshot.exists()) {
+        setText('profileName', 'User Not Found');
+        setText('profileUsername', '');
+        setText('profileBio', 'This user does not exist or has no data.');
+        return;
       }
-    }
+      
+      const d = snapshot.val();
+      profileData = d;
 
-    // Cover Photo
-    const coverEl = document.getElementById('coverPhotoPreview');
-    if (d.coverPhoto) {
-      coverEl.style.backgroundImage = `url('${d.coverPhoto}')`;
-    } else {
-      coverEl.style.backgroundImage = 'linear-gradient(135deg, var(--bg-secondary), var(--border))';
-    }
+      try {
+        // Apply Theme
+        document.body.className = document.body.className.replace(/theme-\w+/g, '').trim();
+        if(d.theme) {
+          document.body.classList.add('theme-' + d.theme);
+          if(isOwner) {
+            document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('active'));
+            const activeCard = document.querySelector(`.theme-card[onclick*="${d.theme}"]`);
+            if(activeCard) activeCard.classList.add('active');
+          }
+        }
 
-    // Basic Details
-    setText('profileName', d.name || 'Space Engineer');
-    setText('profileUsername', '@' + (d.username || 'user'));
-    setText('profileBio', d.bio || 'Building the future with ESTL.');
-    setText('statProjects', Object.keys(d.projects || {}).length);
-    setText('statXP', d.xp || 0);
-    setText('statLevel', d.level || 1);
+        // Cover Photo
+        const coverEl = document.getElementById('coverPhotoPreview');
+        if(coverEl) {
+          if (d.coverPhoto) {
+            coverEl.style.backgroundImage = `url('${d.coverPhoto}')`;
+          } else {
+            coverEl.style.backgroundImage = 'linear-gradient(135deg, var(--bg-secondary), var(--border))';
+          }
+        }
 
-    // Avatar
-    const av = document.getElementById('profileAvatar');
-    if (d.photoURL) {
-      av.style.backgroundImage = `url('${d.photoURL}')`;
-      av.textContent = '';
-    } else {
-      av.style.backgroundImage = 'none';
-      av.textContent = '👤';
-    }
+        // Basic Details
+        setText('profileName', d.name || 'Space Engineer');
+        setText('profileUsername', '@' + (d.username || 'user'));
+        setText('profileBio', d.bio || 'Building the future with ESTL.');
+        setText('statProjects', Object.keys(d.projects || {}).length);
+        setText('statXP', d.xp || 0);
+        setText('statLevel', d.level || 1);
 
-    // Social Links
-    const socialsEl = document.getElementById('profileSocials');
-    socialsEl.innerHTML = '';
-    const social = d.social || {};
-    if (social.github) socialsEl.innerHTML += `<a href="${esc(social.github)}" target="_blank">💻 GitHub</a>`;
-    if (social.instagram) socialsEl.innerHTML += `<a href="${esc(social.instagram)}" target="_blank">📸 Instagram</a>`;
-    if (social.website) socialsEl.innerHTML += `<a href="${esc(social.website)}" target="_blank">🌐 Website</a>`;
+        // Avatar
+        const av = document.getElementById('profileAvatar');
+        if(av) {
+          if (d.photoURL) {
+            av.style.backgroundImage = `url('${d.photoURL}')`;
+            av.textContent = '';
+          } else {
+            av.style.backgroundImage = 'none';
+            av.textContent = '👤';
+          }
+        }
 
-    // Skills
-    renderSkills(d.skills || []);
+        // Social Links
+        const socialsEl = document.getElementById('profileSocials');
+        if(socialsEl) {
+          socialsEl.innerHTML = '';
+          const social = d.social || {};
+          if (social.github) socialsEl.innerHTML += `<a href="${esc(social.github)}" target="_blank">💻 GitHub</a>`;
+          if (social.instagram) socialsEl.innerHTML += `<a href="${esc(social.instagram)}" target="_blank">📸 Instagram</a>`;
+          if (social.website) socialsEl.innerHTML += `<a href="${esc(social.website)}" target="_blank">🌐 Website</a>`;
+        }
 
-    // Prefill Edit Form
-    if (isOwner) {
-      document.getElementById('editName').value = d.name || '';
-      document.getElementById('editUsername').value = d.username || '';
-      document.getElementById('editBio').value = d.bio || '';
-      document.getElementById('editGithub').value = (d.social && d.social.github) || '';
-      document.getElementById('editInstagram').value = (d.social && d.social.instagram) || '';
-      document.getElementById('editWebsite').value = (d.social && d.social.website) || '';
-    }
-  });
+        // Skills
+        renderSkills(d.skills || []);
+
+        // Prefill Edit Form
+        if (isOwner) {
+          const els = ['editName', 'editUsername', 'editBio', 'editGithub', 'editInstagram', 'editWebsite'];
+          els.forEach(id => {
+            if(!document.getElementById(id)) console.warn('Missing input:', id);
+          });
+          document.getElementById('editName').value = d.name || '';
+          document.getElementById('editUsername').value = d.username || '';
+          document.getElementById('editBio').value = d.bio || '';
+          document.getElementById('editGithub').value = (d.social && d.social.github) || '';
+          document.getElementById('editInstagram').value = (d.social && d.social.instagram) || '';
+          document.getElementById('editWebsite').value = (d.social && d.social.website) || '';
+        }
+      } catch(renderErr) {
+        if(window.showToast) showToast('Render error: ' + renderErr.message, 'error');
+        console.error('Render error:', renderErr);
+      }
+    }, (err) => {
+      if(window.showToast) showToast('DB Error: ' + err.message, 'error');
+      console.error('Database error:', err);
+    });
+  } catch(e) {
+    if(window.showToast) showToast('Init Error: ' + e.message, 'error');
+    console.error('Init error:', e);
+  }
 }
 
 // ===================== CUSTOMIZATION LOGIC =====================
