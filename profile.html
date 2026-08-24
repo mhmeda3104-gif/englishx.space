@@ -66,6 +66,7 @@
           <p class="profile-username" id="profileUsername">@...</p>
           <p class="profile-bio" id="profileBio">Loading bio...</p>
           <div class="profile-socials" id="profileSocials"></div>
+          <div class="custom-links-container" id="customLinksPreview"></div>
           
           <div class="skills-section" id="skillsContainer">
             <!-- Skills populated dynamically -->
@@ -109,11 +110,79 @@
   </section>
 
   <!-- ===== BUILDER TOOLBAR (OWNER ONLY) ===== -->
-  <div class="portfolio-builder-toolbar owner-only" id="builderToolbar" style="display: none;">
-    <button class="toolbar-btn" onclick="openModal('themeModal')">🎨 Themes</button>
+    <div class="portfolio-builder-toolbar owner-only" id="builderToolbar" style="display: none;">
+    <button class="toolbar-btn" onclick="toggleSidebar()">🎨 Design Mode</button>
     <button class="toolbar-btn primary" onclick="sharePortfolio()">🔗 Copy Portfolio Link</button>
     <button class="toolbar-btn" style="color:var(--danger)" onclick="logoutUser()">Sign Out</button>
   </div>
+
+  <!-- ===== CARRD.CO STYLE SIDEBAR (OWNER ONLY) ===== -->
+  <div class="builder-sidebar owner-only" id="builderSidebar">
+    <div class="sidebar-header">
+      <h3>Design Mode 🎨</h3>
+      <button class="sidebar-close" onclick="toggleSidebar()">✕</button>
+    </div>
+
+    <!-- Appearance -->
+    <div class="sidebar-section">
+      <h4>Appearance (Colors)</h4>
+      <div class="color-picker-group">
+        <label>Background Color</label>
+        <input type="color" id="colorBg" onchange="updateLivePreview()">
+      </div>
+      <div class="color-picker-group">
+        <label>Card Color</label>
+        <input type="color" id="colorCard" onchange="updateLivePreview()">
+      </div>
+      <div class="color-picker-group">
+        <label>Primary Color</label>
+        <input type="color" id="colorPrimary" onchange="updateLivePreview()">
+      </div>
+      <div class="color-picker-group">
+        <label>Text Color</label>
+        <input type="color" id="colorText" onchange="updateLivePreview()">
+      </div>
+      <button class="btn btn-ghost" style="width:100%; margin-top:10px; font-size:12px;" onclick="resetColors()">Reset to Default</button>
+    </div>
+
+    <!-- Typography -->
+    <div class="sidebar-section">
+      <h4>Typography</h4>
+      <select class="font-selector" id="fontSelector" onchange="updateLivePreview()">
+        <option value="Inter, sans-serif">Inter (Modern)</option>
+        <option value="'Courier New', monospace">Courier (Hacker)</option>
+        <option value="'Times New Roman', serif">Times (Classic)</option>
+        <option value="'Comic Sans MS', cursive">Comic (Fun)</option>
+      </select>
+    </div>
+
+    <!-- Visibility -->
+    <div class="sidebar-section">
+      <h4>Sections Visibility</h4>
+      <div class="toggle-group">
+        <span>Show Stats Bar (XP, Level)</span>
+        <div class="toggle-switch on" id="toggleStats" onclick="toggleVisibility('toggleStats', '.stats-bar')"></div>
+      </div>
+      <div class="toggle-group">
+        <span>Show Skills</span>
+        <div class="toggle-switch on" id="toggleSkills" onclick="toggleVisibility('toggleSkills', '#skillsContainer')"></div>
+      </div>
+      <div class="toggle-group">
+        <span>Show Projects</span>
+        <div class="toggle-switch on" id="toggleProjects" onclick="toggleVisibility('toggleProjects', '.projects-header, #projectsGrid')"></div>
+      </div>
+    </div>
+
+    <!-- Custom Links (Linktree style) -->
+    <div class="sidebar-section">
+      <h4>Custom Links</h4>
+      <div id="editorLinksList"></div>
+      <button class="btn btn-primary" style="width:100%; margin-top:10px;" onclick="addCustomLinkEditor()">+ Add Link Button</button>
+    </div>
+
+    <button class="btn btn-primary" style="width:100%; padding:14px; margin-top:20px; font-size:16px; box-shadow:0 0 15px var(--primary);" onclick="saveCarrdDesign()">💾 Save Design</button>
+  </div>
+
 
   <!-- ===== EDIT PROFILE MODAL ===== -->
   <div class="modal-overlay" id="editProfileModal">

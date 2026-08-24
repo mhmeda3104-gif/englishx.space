@@ -119,6 +119,11 @@ function loadProfileData() {
           if (social.website) socialsEl.innerHTML += `<a href="${esc(social.website)}" target="_blank">🌐 Website</a>`;
         }
 
+        // Custom Links
+        renderCustomLinks(d.customLinks || []);
+        if (isOwner) initCarrdEditor(d);
+        else applyCustomStyles(d.customStyle || {});
+
         // Skills
         renderSkills(d.skills || []);
 
@@ -333,4 +338,140 @@ function logoutUser() {
 function showGuestState() {
   setText('profileName', 'Guest User');
   setText('profileUsername', '@guest');
+}
+
+
+// ===================== CARRD.CO BUILDER LOGIC =====================
+
+function toggleSidebar() {
+  const sb = document.getElementById('builderSidebar');
+  if(!sb) return;
+  sb.classList.toggle('active');
+  document.body.classList.toggle('sidebar-open');
+}
+
+function initCarrdEditor(d) {
+  if(!isOwner) return;
+  
+  // Custom Styles
+  const style = d.customStyle || {};
+  if (style.bg) document.getElementById('colorBg').value = style.bg;
+  if (style.card) document.getElementById('colorCard').value = style.card;
+  if (style.primary) document.getElementById('colorPrimary').value = style.primary;
+  if (style.text) document.getElementById('colorText').value = style.text;
+  if (style.font) document.getElementById('fontSelector').value = style.font;
+
+  // Hidden Sections
+  const hidden = d.hiddenSections || [];
+  if (hidden.includes('stats')) {
+    document.getElementById('toggleStats').classList.remove('on');
+    document.querySelector('.stats-bar').style.display = 'none';
+  }
+  if (hidden.includes('skills')) {
+    document.getElementById('toggleSkills').classList.remove('on');
+    document.getElementById('skillsContainer').style.display = 'none';
+  }
+  if (hidden.includes('projects')) {
+    document.getElementById('toggleProjects').classList.remove('on');
+    document.querySelectorAll('.projects-header, #projectsGrid').forEach(el => el.style.display = 'none');
+  }
+
+  // Custom Links Editor
+  const links = d.customLinks || [];
+  const list = document.getElementById('editorLinksList');
+  list.innerHTML = '';
+  links.forEach(l => {
+    addCustomLinkEditor(l.title, l.url);
+  });
+
+  applyCustomStyles(style);
+}
+
+function applyCustomStyles(style) {
+  const root = document.documentElement;
+  if (style.bg) root.style.setProperty('--bg-primary', style.bg);
+  if (style.card) root.style.setProperty('--bg-card', style.card);
+  if (style.primary) root.style.setProperty('--primary', style.primary);
+  if (style.text) root.style.setProperty('--text-primary', style.text);
+  if (style.font) root.style.setProperty('font-family', style.font);
+}
+
+function updateLivePreview() {
+  const bg = document.getElementById('colorBg').value;
+  const card = document.getElementById('colorCard').value;
+  const primary = document.getElementById('colorPrimary').value;
+  const text = document.getElementById('colorText').value;
+  const font = document.getElementById('fontSelector').value;
+  
+  applyCustomStyles({bg, card, primary, text, font});
+}
+
+function resetColors() {
+  document.getElementById('colorBg').value = '#0a0a0f';
+  document.getElementById('colorCard').value = '#161622';
+  document.getElementById('colorPrimary').value = '#00ff9d';
+  document.getElementById('colorText').value = '#ffffff';
+  document.getElementById('fontSelector').value = 'Inter, sans-serif';
+  updateLivePreview();
+}
+
+function toggleVisibility(toggleId, selector) {
+  const toggle = document.getElementById(toggleId);
+  toggle.classList.toggle('on');
+  const show = toggle.classList.contains('on');
+  document.querySelectorAll(selector).forEach(el => {
+    el.style.display = show ? '' : 'none';
+  });
+}
+
+function addCustomLinkEditor(title = '', url = '') {
+  const id = 'link_' + Math.random().toString(36).substr(2, 9);
+  const html = `
+    <div class="editor-link-item" id="${id}">
+      <div class="editor-link-remove" onclick="document.getElementById('${id}').remove()">✕</div>
+      <input type="text" class="form-input link-title-input" placeholder="Button Title (e.g. My YouTube)" value="${esc(title)}">
+      <input type="url" class="form-input link-url-input" placeholder="https://" value="${esc(url)}">
+    </div>
+  `;
+  document.getElementById('editorLinksList').insertAdjacentHTML('beforeend', html);
+}
+
+function saveCarrdDesign() {
+  if (!isOwner) return;
+
+  const bg = document.getElementById('colorBg').value;
+  const card = document.getElementById('colorCard').value;
+  const primary = document.getElementById('colorPrimary').value;
+  const text = document.getElementById('colorText').value;
+  const font = document.getElementById('fontSelector').value;
+  
+  const customStyle = { bg, card, primary, text, font };
+
+  const hiddenSections = [];
+  if (!document.getElementById('toggleStats').classList.contains('on')) hiddenSections.push('stats');
+  if (!document.getElementById('toggleSkills').classList.contains('on')) hiddenSections.push('skills');
+  if (!document.getElementById('toggleProjects').classList.contains('on')) hiddenSections.push('projects');
+
+  const customLinks = [];
+  document.querySelectorAll('.editor-link-item').forEach(el => {
+    const title = el.querySelector('.link-title-input').value.trim();
+    const url = el.querySelector('.link-url-input').value.trim();
+    if (title && url) customLinks.push({ title, url });
+  });
+
+  userRef.update({ customStyle, hiddenSections, customLinks }).then(() => {
+    if(window.showToast) showToast('Design saved successfully! 🎨', 'success');
+  }).catch(err => {
+    if(window.showToast) showToast('Error saving: ' + err.message, 'error');
+  });
+}
+
+function renderCustomLinks(links) {
+  const container = document.getElementById('customLinksPreview');
+  if(!container) return;
+  container.innerHTML = '';
+  if (!links) return;
+  links.forEach(l => {
+    container.innerHTML += `<a href="${esc(l.url)}" target="_blank" class="custom-link-btn">${esc(l.title)}</a>`;
+  });
 }

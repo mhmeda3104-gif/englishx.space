@@ -39,6 +39,7 @@
           <p class="profile-username" id="profileUsername">@...</p>
           <p class="profile-bio" id="profileBio">Loading portfolio...</p>
           <div class="profile-socials" id="profileSocials"></div>
+          <div class="custom-links-container" id="customLinksPreview"></div>
           <div class="skills-section" id="skillsContainer"></div>
         </div>
       </div>
@@ -102,6 +103,36 @@
 
     function renderPortfolio(d) {
       if(d.theme) document.body.classList.add('theme-' + d.theme);
+
+      // Apply Custom Style
+      if (d.customStyle) {
+        const root = document.documentElement;
+        if (d.customStyle.bg) root.style.setProperty('--bg-primary', d.customStyle.bg);
+        if (d.customStyle.card) root.style.setProperty('--bg-card', d.customStyle.card);
+        if (d.customStyle.primary) root.style.setProperty('--primary', d.customStyle.primary);
+        if (d.customStyle.text) root.style.setProperty('--text-primary', d.customStyle.text);
+        if (d.customStyle.font) root.style.setProperty('font-family', d.customStyle.font);
+      }
+
+      // Hide Sections
+      if (d.hiddenSections) {
+        if (d.hiddenSections.includes('skills')) document.getElementById('skillsContainer').style.display = 'none';
+        if (d.hiddenSections.includes('projects')) {
+          document.querySelectorAll('.projects-header, #projectsGrid').forEach(el => el.style.display = 'none');
+        }
+      }
+
+      // Render Custom Links
+      const linksContainer = document.getElementById('customLinksPreview');
+      if (linksContainer) {
+        linksContainer.innerHTML = '';
+        if (d.customLinks) {
+          d.customLinks.forEach(l => {
+            linksContainer.innerHTML += `<a href="${esc(l.url)}" target="_blank" class="custom-link-btn">${esc(l.title)}</a>`;
+          });
+        }
+      }
+
 
       const coverEl = document.getElementById('coverPhotoPreview');
       if (d.coverPhoto) {
