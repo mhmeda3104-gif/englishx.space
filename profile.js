@@ -17,6 +17,9 @@ let targetUid = null;
 let profileData = {};
 
 document.addEventListener('DOMContentLoaded', () => {
+  const nm = document.getElementById('profileName');
+  if(nm) nm.innerText = "JS Executing...";
+
   const urlParams = new URLSearchParams(window.location.search);
   const viewUserId = urlParams.get('user'); // Changed from id to user as requested
 

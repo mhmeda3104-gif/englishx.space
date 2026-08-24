@@ -8,6 +8,12 @@
   <link rel="stylesheet" href="auth.css?v=3">
   <link rel="stylesheet" href="profile.css?v=3">
   <link rel="icon" type="image/png" href="logo.png">
+  <script>
+    window.onerror = function(msg, url, line) {
+      alert('JS Error: ' + msg + '\nLine: ' + line);
+      return false; 
+    };
+  </script>
 </head>
 <body>
   <!-- Navbar -->
@@ -225,7 +231,8 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="auth-guard.js"></script>
   <script src="app.js?v=2"></script>
-  <script src="profile.js?v=4"></script>
+  <script src="profile.js?v=5"></script>
 </body>
 </html>
