@@ -7,6 +7,7 @@
   <meta name="description" content="ESTL is your premier destination for robotics kits, microcontrollers, embedded systems tutorials, and electronics components.">
   <link rel="stylesheet" href="style.css?v=5">
   <link rel="stylesheet" href="index.css?v=2">
+  <link rel="stylesheet" href="user-card.css">
   <link rel="stylesheet" href="auth.css?v=2">
   <link rel="stylesheet" href="gallery.css?v=1">
   <link rel="icon" type="image/png" href="logo.png">
@@ -135,6 +136,18 @@
     </div>
   </section>
 
+
+  <section class="section" id="home-members" style="padding-top: 0;">
+    <div class="container">
+      <h2 class="section-title animate-fadeUp">Community Members</h2>
+      <p style="text-align:center; color:var(--text-muted); margin-bottom:40px;">Connect with our latest engineers.</p>
+      
+      <div id="homeMembersGrid" style="display: flex; gap: 20px; overflow-x: auto; padding: 10px 10px 30px 10px; scroll-snap-type: x mandatory; scrollbar-width: thin;">
+        <div style="color:var(--text-muted); width:100%; text-align:center;">Loading members...</div>
+      </div>
+    </div>
+  </section>
+
   <footer class="footer">
     <div class="container">
       <div class="footer-top">
@@ -202,7 +215,58 @@
     });
 
     setTimeout(() => { window.showToast && showToast("Welcome to ESTL Robotics Lab! 🤖", "info") }, 1e3);
+
+    function esc(str){if(!str)return '';const d=document.createElement('div');d.innerText=str;return d.innerHTML;}
+    
+    // Load home members
+    firebase.auth().onAuthStateChanged(user => {
+      firebase.database().ref('users').limitToLast(10).once('value').then(snap => {
+        const grid = document.getElementById('homeMembersGrid');
+        if (!snap.exists()) {
+          grid.innerHTML = '<div style="color:var(--text-muted); width:100%; text-align:center;">No members yet.</div>';
+          return;
+        }
+
+        const usersObj = snap.val();
+        const usersArray = Object.keys(usersObj).map(uid => ({uid, ...usersObj[uid]}));
+        
+        // Reverse to show newest first
+        usersArray.reverse();
+
+        grid.innerHTML = usersArray.map(u => {
+          const name = u.name || 'Space Engineer';
+          const bio = u.bio || 'Engineer at ESTL';
+          const avatar = u.photoURL || 'logo.png';
+          
+          return \
+          <div class="relative bg-neutral-primary-soft max-w-xs w-full p-6 border border-default rounded-base shadow-xs" style="flex: 0 0 300px; scroll-snap-align: start;">
+              <button class="absolute top-2 end-2 text-body hover:text-heading bg-neutral-primary-soft box-border border border-transparent hover:bg-neutral-tertiary focus:ring-4 focus:ring-neutral-tertiary rounded-base p-1.5 focus:outline-none" type="button" onclick="window.location.href='portfolio.html?id=\'">
+                  <span class="sr-only">View</span>
+                  <svg class="w-6 h-6" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-width="3" d="M6 12h.01m6 0h.01m5.99 0h.01"/></svg>
+              </button>
+
+              <div class="flex flex-col items-center">
+                  <img class="w-24 h-24 mb-6 rounded-full" src="\" style="object-fit:cover; border: 2px solid var(--primary);" alt="\"/>
+                  <h5 class="mb-0.5 text-xl font-semibold tracking-tight text-heading" style="text-align:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%;">\</h5>
+                  <span class="text-sm text-body" style="text-align:center; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">\</span>
+                  
+                  <div class="flex mt-4 md:mt-6 gap-4">
+                      <button type="button" onclick="window.location.href='portfolio.html?id=\'" class="inline-flex items-center text-white bg-brand box-border border border-transparent hover:bg-brand-strong focus:ring-4 focus:ring-brand-medium shadow-xs font-medium leading-5 rounded-base text-sm px-4 py-2.5 focus:outline-none" style="cursor:pointer">
+                          View Profile
+                      </button>
+                  </div>
+              </div>
+          </div>
+          \;
+        }).join('');
+      }).catch(err => {
+        console.error(err);
+      });
+    });
   </script>
 </body>
 </html>
+
+
+
 
