@@ -258,6 +258,61 @@
           </div>
           `;
         }).join('');
+
+        // Duplicate content for infinite scrolling
+        grid.innerHTML += grid.innerHTML;
+        
+        // Update grid styles for smooth auto-scrolling
+        grid.style.overflowX = 'hidden';
+        grid.style.scrollSnapType = 'none';
+        grid.style.cursor = 'grab'; // Indicate it can be interacted with
+        
+        let scrollPos = 0;
+        let isPaused = false;
+        
+        function scrollLoop() {
+          if (!isPaused) {
+            scrollPos += 1; // Change this number to adjust speed
+            if (scrollPos >= grid.scrollWidth / 2) {
+              scrollPos = 0;
+            }
+            grid.scrollLeft = scrollPos;
+          }
+          requestAnimationFrame(scrollLoop);
+        }
+        
+        // Pause on hover
+        grid.addEventListener('mouseenter', () => isPaused = true);
+        grid.addEventListener('mouseleave', () => isPaused = false);
+        grid.addEventListener('touchstart', () => isPaused = true);
+        grid.addEventListener('touchend', () => isPaused = false);
+        
+        // Manual drag scroll support
+        let isDown = false;
+        let startX;
+        let walk = 0;
+
+        grid.addEventListener('mousedown', (e) => {
+          isDown = true;
+          grid.style.cursor = 'grabbing';
+          startX = e.pageX - grid.offsetLeft;
+        });
+        grid.addEventListener('mouseup', () => {
+          isDown = false;
+          grid.style.cursor = 'grab';
+          scrollPos = grid.scrollLeft; // Sync auto-scroll with manual drag
+        });
+        grid.addEventListener('mousemove', (e) => {
+          if (!isDown) return;
+          e.preventDefault();
+          const x = e.pageX - grid.offsetLeft;
+          walk = (x - startX) * 2;
+          grid.scrollLeft = scrollPos - walk;
+        });
+
+        // Start animation
+        requestAnimationFrame(scrollLoop);
+
       }).catch(err => {
         document.getElementById('homeMembersGrid').innerHTML = '<div style="color:var(--danger); width:100%; text-align:center;">' + err.message + '</div>';
       });
