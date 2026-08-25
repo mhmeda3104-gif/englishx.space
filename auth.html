@@ -80,7 +80,7 @@
         </div>
       </div>
       <button class="btn-auth btn-auth-primary" id="signupBtn" onclick="signupWithEmail()">
-        Create Account 🎓
+        Create Account 
       </button>
     </div>
 
@@ -187,7 +187,7 @@
       btn.disabled = loading;
       btn.innerHTML = loading
         ? '<span class="spinner"></span> Please wait...'
-        : (btnId === 'loginBtn' ? 'Sign In' : btnId === 'signupBtn' ? 'Create Account 🎓' : 'Continue with Google');
+        : (btnId === 'loginBtn' ? 'Sign In' : btnId === 'signupBtn' ? 'Create Account ' : 'Continue with Google');
     }
 
     // ── Create Default User Data ──

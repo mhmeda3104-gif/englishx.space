@@ -28,22 +28,16 @@
       </ul>
 
     <div class="nav-actions" style="display:flex; align-items:center; gap:20px;">
-      <a href="profile.html" title="Profile" style="color:var(--text-primary); transition: opacity 0.3s;" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-      </a>
-      <a href="cart.html" title="Cart" style="color:var(--text-primary); position:relative; transition: opacity 0.3s;" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
-        <span id="cartCount" style="position:absolute; top:-8px; right:-10px; background:red; color:white; font-size:11px; font-weight:bold; border-radius:50%; width:18px; height:18px; display:flex; align-items:center; justify-content:center;">0</span>
-      </a>
-      <button id="themeToggleBtn" aria-label="Toggle Theme" onclick="toggleTheme()" style="background:transparent; border:none; color:var(--text-primary); cursor:pointer; font-size:18px;">🌙</button>
+      <a href="profile.html" class="nav-text-btn" style="color:var(--text-primary); text-decoration:none; font-size:14px; font-weight:500;">Profile</a>
+      <a href="cart.html" class="nav-text-btn" style="color:var(--text-primary); text-decoration:none; font-size:14px; font-weight:500;">Cart (<span id="cartCount">0</span>)</a>
+      <button id="themeToggleBtn" onclick="toggleTheme()" style="background:transparent; border:none; color:var(--text-primary); cursor:pointer; font-size:14px; font-weight:500;">Theme</button>
     </div>
   </nav>
 
   <div class="toast-container" id="toastContainer"></div>
 
-  <section class="hero-section" id="hero" style="background-image: radial-gradient(circle at 50% 50%, rgba(0, 255, 157, 0.05) 0%, transparent 60%);">
-    <div class="hero-bg-orbs">
-      <div class="orb orb-1" style="background: rgba(0,210,255,0.2);"></div>
+  <section class="hero-section" id="hero" >
+    
       <div class="orb orb-2" style="background: rgba(0,255,157,0.2);"></div>
     </div>
     <div class="container" style="position:relative;z-index:1;text-align:center;">
@@ -55,7 +49,7 @@
         The ultimate store and resource hub for Arduino, ESP32, Raspberry Pi, and embedded systems engineering.
       </p>
       <div class="hero-actions animate-fadeUp" style="animation-delay:.3s; justify-content: center; display:flex; gap: 16px;">
-        <a href="ai-builder.html" class="btn btn-primary btn-lg" id="startBtn">🛒 Start Building with AI</a>
+        <a href="ai-builder.html" class="btn btn-primary btn-lg" id="startBtn"> Start Building with AI</a>
         <a href="blog.html" class="btn btn-ghost btn-lg">📚 Read Tutorials</a>
       </div>
     </div>
@@ -63,13 +57,13 @@
 
   <section class="section" id="features">
     <div class="container">
-      <div class="badge badge-primary" style="margin:0 auto 20px; display:flex; justify-content:center; width:fit-content;">⚡ Power Your Projects</div>
+      <div class="badge badge-primary" style="margin:0 auto 20px; display:flex; justify-content:center; width:fit-content;"> Power Your Projects</div>
       <h2 class="section-title">Everything You Need to <span class="gradient-text">Innovate</span></h2>
       <p class="section-subtitle">From high-performance microcontrollers to precision sensors, we have the hardware for your next big idea.</p>
       
       <div class="grid-3">
         <div class="feature-card card reveal-scroll" onclick='window.location="shop.html?category=mcu"'>
-          <div class="feature-icon" style="background:linear-gradient(135deg, #00FF9D, #00804F)">💻</div>
+          <div class="feature-icon" style="background:linear-gradient(135deg, #00FF9D, #00804F)"></div>
           <h3>Microcontrollers</h3>
           <p>ESP32, Arduino Nano, Raspberry Pi Pico, and STM32 boards for powerful edge computing.</p>
           <div class="feature-link">View MCUs →</div>
@@ -100,11 +94,11 @@
       <div class="gallery-grid">
         <figure class="gallery-item gallery-item-1 reveal-scroll">
           <img src="https://images.unsplash.com/photo-1561557944-6e7860d1a7eb?w=500&h=600&fit=crop" alt="Robot Arm Project" loading="lazy">
-          <figcaption>🤖 Robot Arm Build</figcaption>
+          <figcaption> Robot Arm Build</figcaption>
         </figure>
         <figure class="gallery-item gallery-item-2 reveal-scroll">
           <img src="https://images.unsplash.com/photo-1518770660439-4636190af475?w=500&h=400&fit=crop" alt="Circuit Board" loading="lazy">
-          <figcaption>💻 Custom PCB Design</figcaption>
+          <figcaption> Custom PCB Design</figcaption>
         </figure>
         <figure class="gallery-item gallery-item-3 reveal-scroll">
           <img src="https://images.unsplash.com/photo-1555664424-778a1e5e1b48?w=500&h=500&fit=crop" alt="IoT Setup" loading="lazy">
@@ -120,7 +114,7 @@
         </figure>
         <figure class="gallery-item gallery-item-6 reveal-scroll">
           <img src="https://images.unsplash.com/photo-1535378917042-10a22c95931a?w=500&h=400&fit=crop" alt="Arduino Project" loading="lazy">
-          <figcaption>⚡ Arduino Workshop</figcaption>
+          <figcaption> Arduino Workshop</figcaption>
         </figure>
       </div>
     </div>
@@ -129,7 +123,7 @@
   <section class="cta-section" id="cta" style="background: var(--bg-card-hover);">
     <div class="cta-glow"></div>
     <div class="container" style="position:relative;z-index:1;text-align:center">
-      <div class="cta-emoji">🤖</div>
+      <div class="cta-emoji"></div>
       <h2 class="section-title" style="font-size:clamp(32px,5vw,56px)">Start Your Next <span class="gradient-text">Build</span></h2>
       <p class="section-subtitle" style="font-size:18px;max-width:550px">Join our community of engineers and makers pushing the boundaries of embedded systems.</p>
       <a href="shop.html" class="btn btn-accent btn-lg" id="ctaBtn" style="font-size:18px;padding:18px 48px">Explore the Shop</a>
@@ -214,7 +208,7 @@
       item.style.transitionDelay = `${index * 0.25}s`;
     });
 
-    setTimeout(() => { window.showToast && showToast("Welcome to ESTL Robotics Lab! 🤖", "info") }, 1e3);
+    setTimeout(() => { window.showToast && showToast("Welcome to ESTL Engineering. ", "info") }, 1e3);
 
 
     function esc(str){if(!str)return '';const d=document.createElement('div');d.innerText=str;return d.innerHTML;}

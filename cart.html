@@ -180,7 +180,7 @@
       if(cart.length === 0) {
         container.innerHTML = `
           <div class="card empty-cart">
-            <div style="font-size:48px; margin-bottom:16px;">🛒</div>
+            <div style="font-size:48px; margin-bottom:16px;"></div>
             <h3>Your cart is empty</h3>
             <p style="margin-top:8px;">Looks like you haven't added any components yet.</p>
             <a href="shop.html" class="btn btn-accent" style="margin-top:20px;">Return to Shop</a>
@@ -256,7 +256,7 @@
         }).then(() => {
           localStorage.removeItem('estl_cart');
           renderCart();
-          showToast("Order placed successfully! 🚀", "success");
+          showToast("Order placed successfully! ", "success");
           setTimeout(() => window.location.href = "profile.html", 2000);
         });
       } else {

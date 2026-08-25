@@ -114,9 +114,9 @@ function loadProfileData() {
         if(socialsEl) {
           socialsEl.innerHTML = '';
           const social = d.social || {};
-          if (social.github) socialsEl.innerHTML += `<a href="${esc(social.github)}" target="_blank">💻 GitHub</a>`;
-          if (social.instagram) socialsEl.innerHTML += `<a href="${esc(social.instagram)}" target="_blank">📸 Instagram</a>`;
-          if (social.website) socialsEl.innerHTML += `<a href="${esc(social.website)}" target="_blank">🌐 Website</a>`;
+          if (social.github) socialsEl.innerHTML += `<a href="${esc(social.github)}" target="_blank"> GitHub</a>`;
+          if (social.instagram) socialsEl.innerHTML += `<a href="${esc(social.instagram)}" target="_blank"> Instagram</a>`;
+          if (social.website) socialsEl.innerHTML += `<a href="${esc(social.website)}" target="_blank"> Website</a>`;
         }
 
         // Custom Links
@@ -221,7 +221,7 @@ function renderSkills(skills) {
 function sharePortfolio() {
   const url = window.location.origin + '/portfolio.html?id=' + targetUid;
   navigator.clipboard.writeText(url).then(() => {
-    if(window.showToast) showToast('Portfolio link copied! Share it on Instagram 📸', 'success');
+    if(window.showToast) showToast('Portfolio link copied! Share it on Instagram ', 'success');
   });
 }
 
@@ -460,7 +460,7 @@ function saveCarrdDesign() {
   });
 
   userRef.update({ customStyle, hiddenSections, customLinks }).then(() => {
-    if(window.showToast) showToast('Design saved successfully! 🎨', 'success');
+    if(window.showToast) showToast('Design saved successfully! ', 'success');
   }).catch(err => {
     if(window.showToast) showToast('Error saving: ' + err.message, 'error');
   });
