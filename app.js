@@ -24,26 +24,26 @@ function showToast(message, type = "info") {
 }
 
 function initTheme() {
-  const theme = localStorage.getItem("theme") || "dark";
+  const theme = localStorage.getItem("theme") || "light";
   document.documentElement.setAttribute("data-theme", theme);
   updateThemeButtonUI(theme);
 }
 
 function toggleTheme() {
-  const currentTheme = document.documentElement.getAttribute("data-theme") || "dark";
+  const currentTheme = document.documentElement.getAttribute("data-theme") || "light";
   const newTheme = currentTheme === "dark" ? "light" : "dark";
   
   document.documentElement.setAttribute("data-theme", newTheme);
   localStorage.setItem("theme", newTheme);
   updateThemeButtonUI(newTheme);
   
-  showToast(`Switched to ${newTheme === "dark" ? "Dark" : "Light"} Mode! 🌓`, "success");
+  showToast(`Switched to ${newTheme === "dark" ? "Dark" : "Light"} Mode`, "success");
 }
 
 function updateThemeButtonUI(theme) {
   const btn = document.getElementById("themeToggleBtn");
   if (btn) {
-    btn.textContent = theme === "dark" ? "☀️" : "🌙";
+    btn.textContent = theme === "dark" ? "Light Mode" : "Dark Mode";
   }
 }
 
