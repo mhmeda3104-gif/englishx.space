@@ -24,7 +24,7 @@ function showToast(message, type = "info") {
 }
 
 function initTheme() {
-  const theme = localStorage.getItem("theme") || "light";
+  const theme = localStorage.getItem("theme_v2") || "light";
   document.documentElement.setAttribute("data-theme", theme);
   updateThemeButtonUI(theme);
 }
@@ -34,7 +34,7 @@ function toggleTheme() {
   const newTheme = currentTheme === "dark" ? "light" : "dark";
   
   document.documentElement.setAttribute("data-theme", newTheme);
-  localStorage.setItem("theme", newTheme);
+  localStorage.setItem("theme_v2", newTheme);
   updateThemeButtonUI(newTheme);
   
   showToast(`Switched to ${newTheme === "dark" ? "Dark" : "Light"} Mode`, "success");
