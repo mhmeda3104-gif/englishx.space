@@ -1,4 +1,4 @@
-// profile.js - Advanced Portfolio Builder
+// profile.js - Carrd.co Modular Block Builder Engine
 
 const firebaseConfig = {
   apiKey: "AIzaSyBydQb6wDh4X7JA0JkcuhToJam66VD3bTM",
@@ -15,17 +15,22 @@ let userRef = null;
 let isOwner = false;
 let targetUid = null;
 let profileData = {};
+let activeBlocks = [];
+let pageSettings = {
+  canvasWidth: '800px',
+  bg: '',
+  card: '',
+  primary: '',
+  text: '',
+  font: 'Inter, sans-serif'
+};
 
 document.addEventListener('DOMContentLoaded', () => {
-  const nm = document.getElementById('profileName');
-  if(nm) nm.innerText = "JS Executing...";
-
   const urlParams = new URLSearchParams(window.location.search);
-  const viewUserId = urlParams.get('user'); // Changed from id to user as requested
+  const viewUserId = urlParams.get('user') || urlParams.get('id');
 
   firebase.auth().onAuthStateChanged(user => {
     if (user) currentUser = user;
-
     targetUid = viewUserId || (user ? user.uid : null);
 
     if (!targetUid) {
@@ -42,233 +47,633 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (isOwner && !viewUserId) {
       document.body.classList.add('owner-view');
-      document.getElementById('builderToolbar').style.display = 'flex';
+      const tb = document.getElementById('builderToolbar');
+      if (tb) tb.style.display = 'flex';
     } else {
       document.body.classList.remove('owner-view');
     }
 
     loadProfileData();
-    loadProjects();
   });
 });
 
-// ===================== PROFILE LOADING =====================
+// ===================== DATA LOADING =====================
 
 function loadProfileData() {
-  try {
-    userRef.on('value', snapshot => {
-      if (!snapshot.exists()) {
-        setText('profileName', 'User Not Found');
-        setText('profileUsername', '');
-        setText('profileBio', 'This user does not exist or has no data.');
-        return;
-      }
-      
-      const d = snapshot.val();
-      profileData = d;
+  userRef.on('value', snapshot => {
+    if (!snapshot.exists()) {
+      renderEmptyState();
+      return;
+    }
 
-      try {
-        // Apply Theme
-        document.body.className = document.body.className.replace(/theme-\w+/g, '').trim();
-        if(d.theme) {
-          document.body.classList.add('theme-' + d.theme);
-          if(isOwner) {
-            document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('active'));
-            const activeCard = document.querySelector(`.theme-card[onclick*="${d.theme}"]`);
-            if(activeCard) activeCard.classList.add('active');
-          }
-        }
+    const d = snapshot.val();
+    profileData = d;
 
-        // Cover Photo
-        const coverEl = document.getElementById('coverPhotoPreview');
-        if(coverEl) {
-          if (d.coverPhoto) {
-            coverEl.style.backgroundImage = `url('${d.coverPhoto}')`;
-          } else {
-            coverEl.style.backgroundImage = 'linear-gradient(135deg, var(--bg-secondary), var(--border))';
-          }
-        }
+    // Load or migrate blocks
+    if (d.customBlocks && Array.isArray(d.customBlocks) && d.customBlocks.length > 0) {
+      activeBlocks = JSON.parse(JSON.stringify(d.customBlocks));
+    } else {
+      activeBlocks = createStarterBlocks(d);
+    }
 
-        // Basic Details
-        setText('profileName', d.name || 'Space Engineer');
-        setText('profileUsername', '@' + (d.username || 'user'));
-        setText('profileBio', d.bio || 'Building the future with ESTL.');
-        setText('statProjects', Object.keys(d.projects || {}).length);
-        setText('statXP', d.xp || 0);
-        setText('statLevel', d.level || 1);
+    // Load page settings
+    if (d.pageSettings) {
+      pageSettings = { ...pageSettings, ...d.pageSettings };
+    } else if (d.customStyle) {
+      pageSettings.bg = d.customStyle.bg || '';
+      pageSettings.card = d.customStyle.card || '';
+      pageSettings.primary = d.customStyle.primary || '';
+      pageSettings.text = d.customStyle.text || '';
+      pageSettings.font = d.customStyle.font || 'Inter, sans-serif';
+    }
 
-        // Avatar
-        const av = document.getElementById('profileAvatar');
-        if(av) {
-          if (d.photoURL) {
-            av.style.backgroundImage = `url('${d.photoURL}')`;
-            av.textContent = '';
-          } else {
-            av.style.backgroundImage = 'none';
-            av.textContent = '👤';
-          }
-        }
+    applyPageStyles(pageSettings);
+    renderCanvasBlocks();
 
-        // Social Links
-        const socialsEl = document.getElementById('profileSocials');
-        if(socialsEl) {
-          socialsEl.innerHTML = '';
-          const social = d.social || {};
-          if (social.github) socialsEl.innerHTML += `<a href="${esc(social.github)}" target="_blank"> GitHub</a>`;
-          if (social.instagram) socialsEl.innerHTML += `<a href="${esc(social.instagram)}" target="_blank"> Instagram</a>`;
-          if (social.website) socialsEl.innerHTML += `<a href="${esc(social.website)}" target="_blank"> Website</a>`;
-        }
-
-        // Custom Links
-        renderCustomLinks(d.customLinks || []);
-        if (isOwner) initCarrdEditor(d);
-        else applyCustomStyles(d.customStyle || {});
-
-        // Skills
-        renderSkills(d.skills || []);
-
-        // Prefill Edit Form
-        if (isOwner) {
-          const els = ['editName', 'editUsername', 'editBio', 'editGithub', 'editInstagram', 'editWebsite'];
-          els.forEach(id => {
-            if(!document.getElementById(id)) console.warn('Missing input:', id);
-          });
-          document.getElementById('editName').value = d.name || '';
-          document.getElementById('editUsername').value = d.username || '';
-          document.getElementById('editBio').value = d.bio || '';
-          document.getElementById('editGithub').value = (d.social && d.social.github) || '';
-          document.getElementById('editInstagram').value = (d.social && d.social.instagram) || '';
-          document.getElementById('editWebsite').value = (d.social && d.social.website) || '';
-        }
-      } catch(renderErr) {
-        if(window.showToast) showToast('Render error: ' + renderErr.message, 'error');
-        console.error('Render error:', renderErr);
-      }
-    }, (err) => {
-      if(window.showToast) showToast('DB Error: ' + err.message, 'error');
-      console.error('Database error:', err);
-    });
-  } catch(e) {
-    if(window.showToast) showToast('Init Error: ' + e.message, 'error');
-    console.error('Init error:', e);
-  }
-}
-
-// ===================== CUSTOMIZATION LOGIC =====================
-
-function applyTheme(themeName) {
-  document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('active'));
-  event.target.classList.add('active');
-  document.body.className = document.body.className.replace(/theme-\w+/g, '').trim();
-  document.body.classList.add('theme-' + themeName);
-  profileData.selectedTheme = themeName;
-}
-
-function saveTheme() {
-  if (!isOwner || !profileData.selectedTheme) return;
-  userRef.update({ theme: profileData.selectedTheme }).then(() => {
-    closeModal('themeModal');
-    if(window.showToast) showToast('Theme applied successfully!', 'success');
+    if (isOwner) {
+      initSidebarControls();
+      renderSidebarBlocksList();
+    }
+  }, err => {
+    console.error('Database read error:', err);
   });
 }
 
-function handleCoverUpload(event) {
-  if (!isOwner) return;
+function createStarterBlocks(d) {
+  const blocks = [];
+  
+  // 1. Cover Photo if exists
+  if (d.coverPhoto) {
+    blocks.push({
+      id: genId('block'),
+      type: 'image',
+      url: d.coverPhoto,
+      size: 'full',
+      radius: 'rounded',
+      align: 'center',
+      link: '',
+      caption: ''
+    });
+  }
+
+  // 2. Avatar
+  blocks.push({
+    id: genId('block'),
+    type: 'image',
+    url: d.photoURL || 'logo.png',
+    size: 'avatar',
+    radius: 'circle',
+    align: 'center',
+    link: '',
+    caption: ''
+  });
+
+  // 3. Name & Bio
+  blocks.push({
+    id: genId('block'),
+    type: 'text',
+    content: d.name || 'Space Engineer',
+    style: 'h1',
+    align: 'center',
+    color: ''
+  });
+
+  if (d.username) {
+    blocks.push({
+      id: genId('block'),
+      type: 'text',
+      content: '@' + d.username,
+      style: 'h3',
+      align: 'center',
+      color: 'var(--primary)'
+    });
+  }
+
+  if (d.bio) {
+    blocks.push({
+      id: genId('block'),
+      type: 'text',
+      content: d.bio,
+      style: 'body',
+      align: 'center',
+      color: ''
+    });
+  }
+
+  // 4. Social & Custom Links
+  const linkBtns = [];
+  const social = d.social || {};
+  if (social.github) linkBtns.push({ title: 'GitHub', url: social.github, style: 'outline' });
+  if (social.instagram) linkBtns.push({ title: 'Instagram', url: social.instagram, style: 'outline' });
+  if (social.website) linkBtns.push({ title: 'Website', url: social.website, style: 'outline' });
+
+  (d.customLinks || []).forEach(l => {
+    if (l.title && l.url) linkBtns.push({ title: l.title, url: l.url, style: 'solid' });
+  });
+
+  if (linkBtns.length > 0) {
+    blocks.push({
+      id: genId('block'),
+      type: 'buttons',
+      buttons: linkBtns,
+      layout: 'column',
+      align: 'center'
+    });
+  }
+
+  return blocks;
+}
+
+// ===================== CANVAS RENDERING =====================
+
+function renderCanvasBlocks() {
+  const canvas = document.getElementById('modularCanvas');
+  if (!canvas) return;
+
+  // Hide legacy elements to avoid duplication
+  const legacyHero = document.querySelector('.profile-hero');
+  const legacyCover = document.getElementById('coverPhotoPreview');
+  const legacyStats = document.querySelector('.stats-bar');
+  const legacyProjectsHeader = document.querySelector('.projects-header');
+  const legacyProjectsGrid = document.getElementById('projectsGrid');
+  if (legacyHero) legacyHero.style.display = 'none';
+  if (legacyCover) legacyCover.style.display = 'none';
+  if (legacyStats) legacyStats.style.display = 'none';
+  if (legacyProjectsHeader) legacyProjectsHeader.style.display = 'none';
+  if (legacyProjectsGrid) legacyProjectsGrid.style.display = 'none';
+
+  canvas.innerHTML = '';
+
+  if (activeBlocks.length === 0) {
+    canvas.innerHTML = '<div style="text-align:center; padding:60px 20px; color:var(--text-muted); border:2px dashed var(--border); border-radius:var(--radius-lg);">No elements yet. Click "+ Add Element" in Design Mode to start building!</div>';
+    return;
+  }
+
+  activeBlocks.forEach((b, index) => {
+    const blockEl = document.createElement('div');
+    blockEl.className = 'canvas-block';
+    blockEl.id = 'canvas_' + b.id;
+
+    let innerHtml = '';
+
+    if (b.type === 'image') {
+      const alignClass = 'align-' + (b.align || 'center');
+      const sizeClass = 'size-' + (b.size || 'medium');
+      const radiusClass = 'radius-' + (b.radius || 'rounded');
+      const imgUrl = b.url || 'logo.png';
+      const imgTag = `<img src="${esc(imgUrl)}" alt="Image" loading="lazy">`;
+      const linkedImg = b.link ? `<a href="${esc(b.link)}" target="_blank">${imgTag}</a>` : imgTag;
+      const captionTag = b.caption ? `<div class="block-image-caption">${esc(b.caption)}</div>` : '';
+
+      innerHtml = `
+        <div class="block-image-wrap ${alignClass} ${sizeClass} ${radiusClass}">
+          <div class="block-image-content">
+            ${linkedImg}
+            ${captionTag}
+          </div>
+        </div>
+      `;
+    } 
+    else if (b.type === 'text') {
+      const alignClass = 'align-' + (b.align || 'center');
+      const styleClass = 'style-' + (b.style || 'body');
+      const colorStyle = b.color ? `style="color:${esc(b.color)}"` : '';
+      innerHtml = `
+        <div class="block-text ${alignClass} ${styleClass}" ${colorStyle}>
+          ${esc(b.content || '')}
+        </div>
+      `;
+    }
+    else if (b.type === 'buttons') {
+      const layoutClass = 'layout-' + (b.layout || 'column');
+      const alignClass = 'align-' + (b.align || 'center');
+      const btnsHtml = (b.buttons || []).map(btn => {
+        const btnStyle = 'btn-' + (btn.style || 'solid');
+        return `<a href="${esc(btn.url || '#')}" target="_blank" class="block-btn-item ${btnStyle}">${esc(btn.title || 'Link')}</a>`;
+      }).join('');
+
+      innerHtml = `
+        <div class="block-buttons ${layoutClass} ${alignClass}">
+          ${btnsHtml}
+        </div>
+      `;
+    }
+    else if (b.type === 'divider') {
+      const styleClass = 'style-' + (b.style || 'line');
+      innerHtml = `
+        <div class="block-divider ${styleClass}">
+          <hr>
+        </div>
+      `;
+    }
+    else if (b.type === 'video') {
+      const videoUrl = b.url || '';
+      let mediaTag = '';
+      if (videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be')) {
+        const embedUrl = getYouTubeEmbedUrl(videoUrl);
+        mediaTag = `<iframe src="${embedUrl}" allowfullscreen></iframe>`;
+      } else {
+        const autoplayAttr = b.autoplay ? 'autoplay loop muted playsinline' : 'controls';
+        mediaTag = `<video src="${esc(videoUrl)}" ${autoplayAttr}></video>`;
+      }
+      innerHtml = `
+        <div class="block-video">
+          ${mediaTag}
+        </div>
+      `;
+    }
+
+    // Owner in-canvas quick tools
+    if (isOwner) {
+      innerHtml += `
+        <div class="canvas-block-actions">
+          <button onclick="moveBlock(${index}, -1)" title="Move Up">▲</button>
+          <button onclick="moveBlock(${index}, 1)" title="Move Down">▼</button>
+          <button onclick="openBlockSettings('${b.id}')" title="Edit">⚙</button>
+          <button onclick="removeBlock('${b.id}')" title="Delete" style="color:var(--danger)">✕</button>
+        </div>
+      `;
+    }
+
+    blockEl.innerHTML = innerHtml;
+    canvas.appendChild(blockEl);
+  });
+}
+
+function getYouTubeEmbedUrl(url) {
+  let videoId = '';
+  if (url.includes('youtu.be/')) {
+    videoId = url.split('youtu.be/')[1].split('?')[0];
+  } else if (url.includes('watch?v=')) {
+    videoId = url.split('watch?v=')[1].split('&')[0];
+  }
+  return videoId ? 'https://www.youtube.com/embed/' + videoId : url;
+}
+
+// ===================== SIDEBAR BLOCK MANAGEMENT =====================
+
+function renderSidebarBlocksList() {
+  const container = document.getElementById('sidebarBlocksList');
+  const countEl = document.getElementById('blocksCount');
+  if (!container) return;
+
+  if (countEl) countEl.innerText = activeBlocks.length;
+  container.innerHTML = '';
+
+  activeBlocks.forEach((b, index) => {
+    const item = document.createElement('div');
+    item.className = 'sidebar-block-item';
+    item.id = 'sidebar_item_' + b.id;
+
+    let icon = '📄';
+    let title = 'Element';
+    if (b.type === 'image') { icon = '🖼️'; title = 'Image (' + (b.size || 'medium') + ')'; }
+    else if (b.type === 'text') { icon = '✍️'; title = 'Text (' + (b.style || 'body') + ')'; }
+    else if (b.type === 'buttons') { icon = '🔘'; title = 'Buttons (' + (b.buttons ? b.buttons.length : 0) + ')'; }
+    else if (b.type === 'divider') { icon = '➖'; title = 'Divider (' + (b.style || 'line') + ')'; }
+    else if (b.type === 'video') { icon = '📹'; title = 'Video Embed'; }
+
+    item.innerHTML = `
+      <div class="sidebar-block-header" onclick="toggleBlockSettings('${b.id}')">
+        <div class="sidebar-block-title">${icon} ${title}</div>
+        <div class="sidebar-block-controls" onclick="event.stopPropagation()">
+          <button onclick="moveBlock(${index}, -1)" title="Move Up">▲</button>
+          <button onclick="moveBlock(${index}, 1)" title="Move Down">▼</button>
+          <button class="btn-del" onclick="removeBlock('${b.id}')" title="Delete">✕</button>
+        </div>
+      </div>
+      <div class="sidebar-block-body">
+        ${renderBlockEditorFields(b, index)}
+      </div>
+    `;
+
+    container.appendChild(item);
+  });
+}
+
+function renderBlockEditorFields(b, index) {
+  if (b.type === 'image') {
+    return `
+      <div class="editor-row">
+        <label>Upload Image</label>
+        <input type="file" accept="image/*" class="editor-input" onchange="handleBlockImageUpload(event, '${b.id}')">
+      </div>
+      <div class="editor-row">
+        <label>Or Image URL</label>
+        <input type="url" class="editor-input" value="${esc(b.url || '')}" placeholder="https://" oninput="updateBlockProp('${b.id}', 'url', this.value)">
+      </div>
+      <div class="editor-row">
+        <label>Size</label>
+        <select class="editor-select" onchange="updateBlockProp('${b.id}', 'size', this.value)">
+          <option value="full" ${b.size==='full'?'selected':''}>Full Width (100%)</option>
+          <option value="large" ${b.size==='large'?'selected':''}>Large (75%)</option>
+          <option value="medium" ${b.size==='medium'?'selected':''}>Medium (50%)</option>
+          <option value="small" ${b.size==='small'?'selected':''}>Small (220px)</option>
+          <option value="avatar" ${b.size==='avatar'?'selected':''}>Avatar Circle (120px)</option>
+        </select>
+      </div>
+      <div class="editor-row">
+        <label>Corner Radius</label>
+        <select class="editor-select" onchange="updateBlockProp('${b.id}', 'radius', this.value)">
+          <option value="rounded" ${b.radius==='rounded'?'selected':''}>Rounded Corners</option>
+          <option value="none" ${b.radius==='none'?'selected':''}>Square (0)</option>
+          <option value="circle" ${b.radius==='circle'?'selected':''}>Circle (Pill)</option>
+        </select>
+      </div>
+      <div class="editor-row">
+        <label>Alignment</label>
+        <div class="editor-segmented">
+          <button class="${b.align==='left'?'active':''}" onclick="updateBlockProp('${b.id}', 'align', 'left')">Left</button>
+          <button class="${b.align==='center'||!b.align?'active':''}" onclick="updateBlockProp('${b.id}', 'align', 'center')">Center</button>
+          <button class="${b.align==='right'?'active':''}" onclick="updateBlockProp('${b.id}', 'align', 'right')">Right</button>
+        </div>
+      </div>
+      <div class="editor-row">
+        <label>Click URL (Optional)</label>
+        <input type="url" class="editor-input" value="${esc(b.link || '')}" placeholder="https://" oninput="updateBlockProp('${b.id}', 'link', this.value)">
+      </div>
+      <div class="editor-row">
+        <label>Caption (Optional)</label>
+        <input type="text" class="editor-input" value="${esc(b.caption || '')}" placeholder="Photo caption..." oninput="updateBlockProp('${b.id}', 'caption', this.value)">
+      </div>
+    `;
+  }
+  else if (b.type === 'text') {
+    return `
+      <div class="editor-row">
+        <label>Text Content</label>
+        <textarea class="editor-input" rows="3" oninput="updateBlockProp('${b.id}', 'content', this.value)">${esc(b.content || '')}</textarea>
+      </div>
+      <div class="editor-row">
+        <label>Style Type</label>
+        <select class="editor-select" onchange="updateBlockProp('${b.id}', 'style', this.value)">
+          <option value="h1" ${b.style==='h1'?'selected':''}>Main Heading (H1)</option>
+          <option value="h2" ${b.style==='h2'?'selected':''}>Subheading (H2)</option>
+          <option value="h3" ${b.style==='h3'?'selected':''}>Section Title (H3)</option>
+          <option value="body" ${b.style==='body'?'selected':''}>Body Paragraph</option>
+          <option value="quote" ${b.style==='quote'?'selected':''}>Quote</option>
+        </select>
+      </div>
+      <div class="editor-row">
+        <label>Alignment</label>
+        <div class="editor-segmented">
+          <button class="${b.align==='left'?'active':''}" onclick="updateBlockProp('${b.id}', 'align', 'left')">Left</button>
+          <button class="${b.align==='center'||!b.align?'active':''}" onclick="updateBlockProp('${b.id}', 'align', 'center')">Center</button>
+          <button class="${b.align==='right'?'active':''}" onclick="updateBlockProp('${b.id}', 'align', 'right')">Right</button>
+        </div>
+      </div>
+      <div class="editor-row">
+        <label>Custom Color (Optional)</label>
+        <input type="color" class="editor-input" value="${b.color || '#ffffff'}" onchange="updateBlockProp('${b.id}', 'color', this.value)">
+      </div>
+    `;
+  }
+  else if (b.type === 'buttons') {
+    const btns = b.buttons || [];
+    let btnsEditorHtml = btns.map((btn, bIdx) => `
+      <div style="background:var(--bg-card); padding:8px; border-radius:4px; margin-bottom:6px; position:relative;">
+        <button style="position:absolute; top:4px; right:4px; background:none; border:none; color:var(--danger); cursor:pointer;" onclick="removeButtonFromBlock('${b.id}', ${bIdx})">✕</button>
+        <input type="text" class="editor-input" placeholder="Title" value="${esc(btn.title)}" oninput="updateButtonProp('${b.id}', ${bIdx}, 'title', this.value)" style="margin-bottom:4px;">
+        <input type="url" class="editor-input" placeholder="https://" value="${esc(btn.url)}" oninput="updateButtonProp('${b.id}', ${bIdx}, 'url', this.value)" style="margin-bottom:4px;">
+        <select class="editor-select" onchange="updateButtonProp('${b.id}', ${bIdx}, 'style', this.value)">
+          <option value="solid" ${btn.style==='solid'?'selected':''}>Solid Brand</option>
+          <option value="outline" ${btn.style==='outline'?'selected':''}>Outline</option>
+          <option value="ghost" ${btn.style==='ghost'?'selected':''}>Subtle Ghost</option>
+        </select>
+      </div>
+    `).join('');
+
+    return `
+      <div class="editor-row">
+        <label>Buttons List</label>
+        ${btnsEditorHtml}
+        <button class="btn btn-ghost" style="width:100%; font-size:12px; padding:6px;" onclick="addButtonToBlock('${b.id}')">+ Add Button</button>
+      </div>
+      <div class="editor-row">
+        <label>Layout</label>
+        <select class="editor-select" onchange="updateBlockProp('${b.id}', 'layout', this.value)">
+          <option value="column" ${b.layout==='column'?'selected':''}>Vertical Stack (Column)</option>
+          <option value="row" ${b.layout==='row'?'selected':''}>Horizontal (Row)</option>
+        </select>
+      </div>
+    `;
+  }
+  else if (b.type === 'divider') {
+    return `
+      <div class="editor-row">
+        <label>Divider Style</label>
+        <select class="editor-select" onchange="updateBlockProp('${b.id}', 'style', this.value)">
+          <option value="line" ${b.style==='line'?'selected':''}>Solid Line</option>
+          <option value="dashed" ${b.style==='dashed'?'selected':''}>Dashed Line</option>
+          <option value="dots" ${b.style==='dots'?'selected':''}>Dotted Center</option>
+          <option value="space" ${b.style==='space'?'selected':''}>Blank Space Gap</option>
+        </select>
+      </div>
+    `;
+  }
+  else if (b.type === 'video') {
+    return `
+      <div class="editor-row">
+        <label>Video URL (MP4 or YouTube)</label>
+        <input type="url" class="editor-input" value="${esc(b.url || '')}" placeholder="https://..." oninput="updateBlockProp('${b.id}', 'url', this.value)">
+      </div>
+      <div class="editor-row">
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+          <input type="checkbox" ${b.autoplay?'checked':''} onchange="updateBlockProp('${b.id}', 'autoplay', this.checked)">
+          <span>Autoplay Looping (GIF-like)</span>
+        </label>
+      </div>
+    `;
+  }
+  return '';
+}
+
+// ===================== BLOCK ACTIONS =====================
+
+function addNewBlock(type) {
+  const newB = {
+    id: genId('block'),
+    type: type
+  };
+
+  if (type === 'image') {
+    newB.url = 'logo.png';
+    newB.size = 'medium';
+    newB.radius = 'rounded';
+    newB.align = 'center';
+  } else if (type === 'text') {
+    newB.content = 'Write your text here...';
+    newB.style = 'body';
+    newB.align = 'center';
+  } else if (type === 'buttons') {
+    newB.buttons = [{ title: 'Visit Link', url: 'https://', style: 'solid' }];
+    newB.layout = 'column';
+    newB.align = 'center';
+  } else if (type === 'divider') {
+    newB.style = 'line';
+  } else if (type === 'video') {
+    newB.url = 'promo-video.mp4';
+    newB.autoplay = true;
+  }
+
+  activeBlocks.push(newB);
+  renderCanvasBlocks();
+  renderSidebarBlocksList();
+  openBlockSettings(newB.id);
+}
+
+function removeBlock(id) {
+  activeBlocks = activeBlocks.filter(b => b.id !== id);
+  renderCanvasBlocks();
+  renderSidebarBlocksList();
+}
+
+function moveBlock(index, direction) {
+  const targetIndex = index + direction;
+  if (targetIndex < 0 || targetIndex >= activeBlocks.length) return;
+  const temp = activeBlocks[index];
+  activeBlocks[index] = activeBlocks[targetIndex];
+  activeBlocks[targetIndex] = temp;
+  renderCanvasBlocks();
+  renderSidebarBlocksList();
+}
+
+function updateBlockProp(id, prop, value) {
+  const block = activeBlocks.find(b => b.id === id);
+  if (!block) return;
+  block[prop] = value;
+  renderCanvasBlocks();
+}
+
+function handleBlockImageUpload(event, blockId) {
   const file = event.target.files[0];
   if (!file) return;
-  
   const reader = new FileReader();
   reader.onload = (e) => {
-    const dataUrl = e.target.result;
-    document.getElementById('coverPhotoPreview').style.backgroundImage = `url('${dataUrl}')`;
-    userRef.update({ coverPhoto: dataUrl }).then(() => {
-      if(window.showToast) showToast('Cover photo updated!', 'success');
-    });
+    updateBlockProp(blockId, 'url', e.target.result);
+    renderSidebarBlocksList();
+    openBlockSettings(blockId);
   };
   reader.readAsDataURL(file);
 }
 
-function addSkill() {
-  if (!isOwner) return;
-  const skillName = document.getElementById('newSkillInput').value.trim();
-  if (!skillName) return;
-  
-  let skills = profileData.skills || [];
-  if (!skills.includes(skillName)) {
-    skills.push(skillName);
-    userRef.update({ skills }).then(() => {
-      document.getElementById('newSkillInput').value = '';
-      closeModal('addSkillModal');
-    });
+function addButtonToBlock(blockId) {
+  const block = activeBlocks.find(b => b.id === blockId);
+  if (!block) return;
+  if (!block.buttons) block.buttons = [];
+  block.buttons.push({ title: 'New Button', url: 'https://', style: 'solid' });
+  renderCanvasBlocks();
+  renderSidebarBlocksList();
+  openBlockSettings(blockId);
+}
+
+function removeButtonFromBlock(blockId, btnIndex) {
+  const block = activeBlocks.find(b => b.id === blockId);
+  if (!block || !block.buttons) return;
+  block.buttons.splice(btnIndex, 1);
+  renderCanvasBlocks();
+  renderSidebarBlocksList();
+  openBlockSettings(blockId);
+}
+
+function updateButtonProp(blockId, btnIndex, prop, value) {
+  const block = activeBlocks.find(b => b.id === blockId);
+  if (!block || !block.buttons || !block.buttons[btnIndex]) return;
+  block.buttons[btnIndex][prop] = value;
+  renderCanvasBlocks();
+}
+
+function toggleBlockSettings(id) {
+  const item = document.getElementById('sidebar_item_' + id);
+  if (!item) return;
+  item.classList.toggle('open');
+}
+
+function openBlockSettings(id) {
+  const item = document.getElementById('sidebar_item_' + id);
+  if (!item) return;
+  item.classList.add('open');
+  item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function resetToDefaultBlocks() {
+  if (confirm('Reset your layout to the standard starter profile?')) {
+    activeBlocks = createStarterBlocks(profileData);
+    renderCanvasBlocks();
+    renderSidebarBlocksList();
   }
 }
 
-function removeSkill(skillName) {
-  if (!isOwner) return;
-  let skills = profileData.skills || [];
-  skills = skills.filter(s => s !== skillName);
-  userRef.update({ skills });
+// ===================== PAGE SETTINGS & PREVIEW =====================
+
+function initSidebarControls() {
+  if (pageSettings.canvasWidth) {
+    const sel = document.getElementById('settingCanvasWidth');
+    if (sel) sel.value = pageSettings.canvasWidth;
+  }
+  if (pageSettings.bg) document.getElementById('colorBg').value = pageSettings.bg;
+  if (pageSettings.card) document.getElementById('colorCard').value = pageSettings.card;
+  if (pageSettings.primary) document.getElementById('colorPrimary').value = pageSettings.primary;
+  if (pageSettings.text) document.getElementById('colorText').value = pageSettings.text;
+  if (pageSettings.font) document.getElementById('fontSelector').value = pageSettings.font;
 }
 
-function renderSkills(skills) {
-  const container = document.getElementById('skillsContainer');
-  container.innerHTML = '';
-  skills.forEach(skill => {
-    container.innerHTML += `<div class="skill-badge">${esc(skill)} <span class="remove-skill" onclick="removeSkill('${esc(skill)}')">×</span></div>`;
+function updatePageStylePreview() {
+  pageSettings.canvasWidth = document.getElementById('settingCanvasWidth').value;
+  pageSettings.bg = document.getElementById('colorBg').value;
+  pageSettings.card = document.getElementById('colorCard').value;
+  pageSettings.primary = document.getElementById('colorPrimary').value;
+  pageSettings.text = document.getElementById('colorText').value;
+  pageSettings.font = document.getElementById('fontSelector').value;
+
+  applyPageStyles(pageSettings);
+}
+
+function applyPageStyles(settings) {
+  const root = document.documentElement;
+  if (settings.canvasWidth) root.style.setProperty('--canvas-max-width', settings.canvasWidth);
+  if (settings.bg) root.style.setProperty('--bg-primary', settings.bg);
+  if (settings.card) root.style.setProperty('--bg-card', settings.card);
+  if (settings.primary) root.style.setProperty('--primary', settings.primary);
+  if (settings.text) root.style.setProperty('--text-primary', settings.text);
+  if (settings.font) root.style.setProperty('font-family', settings.font);
+}
+
+function toggleSidebar() {
+  const sb = document.getElementById('builderSidebar');
+  if (!sb) return;
+  sb.classList.toggle('active');
+  document.body.classList.toggle('sidebar-open');
+}
+
+function saveCarrdDesign() {
+  if (!isOwner) return;
+
+  userRef.update({
+    customBlocks: activeBlocks,
+    pageSettings: pageSettings
+  }).then(() => {
+    if (window.showToast) showToast('Design saved & published successfully!', 'success');
+  }).catch(err => {
+    if (window.showToast) showToast('Error saving: ' + err.message, 'error');
   });
 }
 
 function sharePortfolio() {
   const url = window.location.origin + '/portfolio.html?id=' + targetUid;
   navigator.clipboard.writeText(url).then(() => {
-    if(window.showToast) showToast('Portfolio link copied! Share it on Instagram ', 'success');
+    if (window.showToast) showToast('Portfolio link copied!', 'success');
   });
 }
 
-// ===================== BASIC PROFILE EDIT =====================
-
-function saveProfile() {
-  if (!isOwner || !currentUser) return;
-  const name = document.getElementById('editName').value.trim();
-  let username = document.getElementById('editUsername').value.trim().replace(/^@/, '');
-  const bio = document.getElementById('editBio').value.trim();
-  const github = document.getElementById('editGithub').value.trim();
-  const instagram = document.getElementById('editInstagram').value.trim();
-  const website = document.getElementById('editWebsite').value.trim();
-
-  userRef.update({
-    name, username, bio,
-    social: { github, instagram, website }
-  }).then(() => {
-    closeModal('editProfileModal');
-    if(window.showToast) showToast('Profile updated!', 'success');
-  }).catch(err => {
-    if(window.showToast) showToast('Error: ' + err.message, 'error');
-  });
+function logoutUser() {
+  firebase.auth().signOut().then(() => window.location.href = 'auth.html');
 }
 
-function triggerAvatarUpload() {
-  if (isOwner) document.getElementById('avatarInput').click();
+function genId(prefix) {
+  return prefix + '_' + Math.random().toString(36).substr(2, 9);
 }
 
-function handleAvatarUpload(event) {
-  if (!isOwner) return;
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    userRef.update({ photoURL: e.target.result }).then(() => {
-      if(window.showToast) showToast('Avatar updated!', 'success');
-    });
-  };
-  reader.readAsDataURL(file);
-}
-
-// ===================== MODALS & UTILS =====================
-
-function openModal(id) { document.getElementById(id).classList.add('active'); }
-function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-function setText(id, text) { const el = document.getElementById(id); if (el) el.innerText = text; }
 function esc(str) {
   if (!str) return '';
   const div = document.createElement('div');
@@ -276,202 +681,7 @@ function esc(str) {
   return div.innerHTML;
 }
 
-// Projects logic (simplified from previous)
-function loadProjects() {
-  userRef.child('projects').on('value', snap => {
-    const grid = document.getElementById('projectsGrid');
-    // keep add button if owner
-    grid.innerHTML = isOwner ? `<div class="add-project-card owner-only" onclick="openProjectModal()"><div class="add-icon">+</div><span>Add project</span></div>` : '';
-    
-    if (snap.exists()) {
-      snap.forEach(child => {
-        const p = child.val();
-        const pKey = child.key;
-        grid.innerHTML += `
-          <div class="project-card">
-            <div class="proj-img" style="background-image:url('${p.image || ''}')"></div>
-            <div class="proj-info">
-              <h3>${esc(p.title)}</h3>
-              <p>${esc(p.description)}</p>
-              ${isOwner ? `<button class="btn btn-ghost" onclick="deleteProject('${pKey}')" style="margin-top:10px; color:var(--danger)">Delete</button>` : ''}
-            </div>
-          </div>
-        `;
-      });
-    } else if (!isOwner) {
-      grid.innerHTML = '<p style="color:var(--text-muted); grid-column:1/-1;">No projects added yet.</p>';
-    }
-  });
-}
-
-let editProjectId = null;
-function openProjectModal(id = null) {
-  editProjectId = id;
-  document.getElementById('projTitle').value = '';
-  document.getElementById('projDesc').value = '';
-  document.getElementById('projImageUrl').value = '';
-  document.getElementById('projTags').value = '';
-  openModal('projectModal');
-}
-
-function saveProject() {
-  const title = document.getElementById('projTitle').value.trim();
-  if(!title) return;
-  const desc = document.getElementById('projDesc').value.trim();
-  const image = document.getElementById('projImageUrl').value.trim();
-  
-  const projRef = editProjectId ? userRef.child('projects/' + editProjectId) : userRef.child('projects').push();
-  projRef.set({ title, description: desc, image }).then(() => {
-    closeModal('projectModal');
-    if(window.showToast) showToast('Project saved!', 'success');
-  });
-}
-
-function deleteProject(id) {
-  if(confirm('Are you sure you want to delete this project?')) {
-    userRef.child('projects/' + id).remove();
-  }
-}
-function logoutUser() {
-  firebase.auth().signOut().then(() => window.location.href = 'auth.html');
-}
 function showGuestState() {
-  setText('profileName', 'Guest User');
-  setText('profileUsername', '@guest');
-}
-
-
-// ===================== CARRD.CO BUILDER LOGIC =====================
-
-function toggleSidebar() {
-  const sb = document.getElementById('builderSidebar');
-  if(!sb) return;
-  sb.classList.toggle('active');
-  document.body.classList.toggle('sidebar-open');
-}
-
-function initCarrdEditor(d) {
-  if(!isOwner) return;
-  
-  // Custom Styles
-  const style = d.customStyle || {};
-  if (style.bg) document.getElementById('colorBg').value = style.bg;
-  if (style.card) document.getElementById('colorCard').value = style.card;
-  if (style.primary) document.getElementById('colorPrimary').value = style.primary;
-  if (style.text) document.getElementById('colorText').value = style.text;
-  if (style.font) document.getElementById('fontSelector').value = style.font;
-
-  // Hidden Sections
-  const hidden = d.hiddenSections || [];
-  if (hidden.includes('stats')) {
-    document.getElementById('toggleStats').classList.remove('on');
-    document.querySelector('.stats-bar').style.display = 'none';
-  }
-  if (hidden.includes('skills')) {
-    document.getElementById('toggleSkills').classList.remove('on');
-    document.getElementById('skillsContainer').style.display = 'none';
-  }
-  if (hidden.includes('projects')) {
-    document.getElementById('toggleProjects').classList.remove('on');
-    document.querySelectorAll('.projects-header, #projectsGrid').forEach(el => el.style.display = 'none');
-  }
-
-  // Custom Links Editor
-  const links = d.customLinks || [];
-  const list = document.getElementById('editorLinksList');
-  list.innerHTML = '';
-  links.forEach(l => {
-    addCustomLinkEditor(l.title, l.url);
-  });
-
-  applyCustomStyles(style);
-}
-
-function applyCustomStyles(style) {
-  const root = document.documentElement;
-  if (style.bg) root.style.setProperty('--bg-primary', style.bg);
-  if (style.card) root.style.setProperty('--bg-card', style.card);
-  if (style.primary) root.style.setProperty('--primary', style.primary);
-  if (style.text) root.style.setProperty('--text-primary', style.text);
-  if (style.font) root.style.setProperty('font-family', style.font);
-}
-
-function updateLivePreview() {
-  const bg = document.getElementById('colorBg').value;
-  const card = document.getElementById('colorCard').value;
-  const primary = document.getElementById('colorPrimary').value;
-  const text = document.getElementById('colorText').value;
-  const font = document.getElementById('fontSelector').value;
-  
-  applyCustomStyles({bg, card, primary, text, font});
-}
-
-function resetColors() {
-  document.getElementById('colorBg').value = '#0a0a0f';
-  document.getElementById('colorCard').value = '#161622';
-  document.getElementById('colorPrimary').value = '#00ff9d';
-  document.getElementById('colorText').value = '#ffffff';
-  document.getElementById('fontSelector').value = 'Inter, sans-serif';
-  updateLivePreview();
-}
-
-function toggleVisibility(toggleId, selector) {
-  const toggle = document.getElementById(toggleId);
-  toggle.classList.toggle('on');
-  const show = toggle.classList.contains('on');
-  document.querySelectorAll(selector).forEach(el => {
-    el.style.display = show ? '' : 'none';
-  });
-}
-
-function addCustomLinkEditor(title = '', url = '') {
-  const id = 'link_' + Math.random().toString(36).substr(2, 9);
-  const html = `
-    <div class="editor-link-item" id="${id}">
-      <div class="editor-link-remove" onclick="document.getElementById('${id}').remove()">✕</div>
-      <input type="text" class="form-input link-title-input" placeholder="Button Title (e.g. My YouTube)" value="${esc(title)}">
-      <input type="url" class="form-input link-url-input" placeholder="https://" value="${esc(url)}">
-    </div>
-  `;
-  document.getElementById('editorLinksList').insertAdjacentHTML('beforeend', html);
-}
-
-function saveCarrdDesign() {
-  if (!isOwner) return;
-
-  const bg = document.getElementById('colorBg').value;
-  const card = document.getElementById('colorCard').value;
-  const primary = document.getElementById('colorPrimary').value;
-  const text = document.getElementById('colorText').value;
-  const font = document.getElementById('fontSelector').value;
-  
-  const customStyle = { bg, card, primary, text, font };
-
-  const hiddenSections = [];
-  if (!document.getElementById('toggleStats').classList.contains('on')) hiddenSections.push('stats');
-  if (!document.getElementById('toggleSkills').classList.contains('on')) hiddenSections.push('skills');
-  if (!document.getElementById('toggleProjects').classList.contains('on')) hiddenSections.push('projects');
-
-  const customLinks = [];
-  document.querySelectorAll('.editor-link-item').forEach(el => {
-    const title = el.querySelector('.link-title-input').value.trim();
-    const url = el.querySelector('.link-url-input').value.trim();
-    if (title && url) customLinks.push({ title, url });
-  });
-
-  userRef.update({ customStyle, hiddenSections, customLinks }).then(() => {
-    if(window.showToast) showToast('Design saved successfully! ', 'success');
-  }).catch(err => {
-    if(window.showToast) showToast('Error saving: ' + err.message, 'error');
-  });
-}
-
-function renderCustomLinks(links) {
-  const container = document.getElementById('customLinksPreview');
-  if(!container) return;
-  container.innerHTML = '';
-  if (!links) return;
-  links.forEach(l => {
-    container.innerHTML += `<a href="${esc(l.url)}" target="_blank" class="custom-link-btn">${esc(l.title)}</a>`;
-  });
+  const canvas = document.getElementById('modularCanvas');
+  if (canvas) canvas.innerHTML = '<div style="text-align:center; padding:60px;"><h3>Guest Mode</h3><p>Please log in to design your profile.</p></div>';
 }

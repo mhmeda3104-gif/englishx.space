@@ -3,19 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Engineer Portfolio</title>
+  <title>Engineer Portfolio - ESTL Tech</title>
   <link rel="stylesheet" href="style.css?v=6">
-  <link rel="stylesheet" href="profile.css?v=3">
+  <link rel="stylesheet" href="profile.css?v=5">
   <link rel="icon" type="image/png" href="logo.png">
   <style>
-    body { padding-top: 0; }
+    body { padding-top: 0; min-height: 100vh; display: flex; flex-direction: column; }
     .navbar { display: none !important; }
-    .profile-section { padding-top: 0; }
+    .portfolio-main { flex: 1; padding: 40px 20px 80px; }
     .portfolio-footer {
       text-align: center;
-      padding: 40px;
+      padding: 30px 20px;
       color: var(--text-muted);
       font-size: 13px;
+      border-top: 1px solid var(--border);
     }
     .portfolio-footer a {
       color: var(--primary);
@@ -27,40 +28,21 @@
   
   <div class="toast-container" id="toastContainer"></div>
 
-  <section class="section profile-section">
-    <div class="container profile-container" style="margin-top:0;">
-      <div class="cover-photo-wrap" id="coverPhotoPreview" style="border-radius: 0 0 20px 20px;"></div>
-      <div class="card profile-hero" style="border-top: none;">
-        <div class="profile-avatar-wrap">
-          <div class="profile-avatar" id="profileAvatar">👤</div>
-        </div>
-        <div class="profile-details">
-          <h1 class="profile-name" id="profileName">Loading...</h1>
-          <p class="profile-username" id="profileUsername">@...</p>
-          <p class="profile-bio" id="profileBio">Loading portfolio...</p>
-          <div class="profile-socials" id="profileSocials"></div>
-          <div class="custom-links-container" id="customLinksPreview"></div>
-          <div class="skills-section" id="skillsContainer"></div>
-        </div>
-      </div>
-
-      <div class="projects-header" style="margin-top:40px;">
-        <h2> Featured Projects</h2>
-      </div>
-      <div class="projects-grid" id="projectsGrid">
-        <p style="color:var(--text-muted); padding:20px;">Loading projects...</p>
+  <main class="portfolio-main">
+    <div class="modular-canvas" id="modularCanvas">
+      <div style="text-align:center; padding:60px 20px; color:var(--text-muted);">
+        Loading portfolio...
       </div>
     </div>
-  </section>
+  </main>
 
-  <div class="portfolio-footer">
+  <footer class="portfolio-footer">
     Powered by <a href="index.html">ESTL Tech</a>
-  </div>
+  </footer>
 
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-  <script src="app.js?v=2"></script>
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyBydQb6wDh4X7JA0JkcuhToJam66VD3bTM",
@@ -74,11 +56,12 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
-      const uidQuery = urlParams.get('id');
+      const uidQuery = urlParams.get('id') || urlParams.get('user');
       
+      const canvas = document.getElementById('modularCanvas');
+
       if (!uidQuery) {
-        document.getElementById('profileName').innerText = "Invalid Link";
-        document.getElementById('profileBio').innerText = "Please provide a valid user ID.";
+        canvas.innerHTML = '<div style="text-align:center; padding:60px; color:var(--text-muted);"><h3>Invalid Link</h3><p>Please provide a valid user ID.</p></div>';
         return;
       }
 
@@ -86,103 +69,136 @@
         try {
           if (snapshot.exists()) {
             const d = snapshot.val();
-            renderPortfolio(d);
+            renderPublicPortfolio(d);
           } else {
-            document.getElementById('profileName').innerText = "User Not Found";
-            document.getElementById('profileBio').innerText = "No engineer found with this link.";
+            canvas.innerHTML = '<div style="text-align:center; padding:60px; color:var(--text-muted);"><h3>User Not Found</h3><p>No engineer found with this link.</p></div>';
           }
         } catch(renderErr) {
-          document.getElementById('profileName').innerText = "Render Error";
-          document.getElementById('profileBio').innerText = renderErr.message;
+          canvas.innerHTML = '<div style="text-align:center; padding:60px; color:var(--danger);"><h3>Render Error</h3><p>' + renderErr.message + '</p></div>';
         }
       }).catch(err => {
-        document.getElementById('profileName').innerText = "Error Loading Data";
-        document.getElementById('profileBio').innerText = err.message + " (Permission Denied)";
+        canvas.innerHTML = '<div style="text-align:center; padding:60px; color:var(--danger);"><h3>Error Loading Data</h3><p>' + err.message + '</p></div>';
       });
     });
 
-    function renderPortfolio(d) {
-      if(d.theme) document.body.classList.add('theme-' + d.theme);
+    function renderPublicPortfolio(d) {
+      // 1. Apply Theme & Page Settings
+      if (d.theme) document.body.classList.add('theme-' + d.theme);
 
-      // Apply Custom Style
-      if (d.customStyle) {
-        const root = document.documentElement;
-        if (d.customStyle.bg) root.style.setProperty('--bg-primary', d.customStyle.bg);
-        if (d.customStyle.card) root.style.setProperty('--bg-card', d.customStyle.card);
-        if (d.customStyle.primary) root.style.setProperty('--primary', d.customStyle.primary);
-        if (d.customStyle.text) root.style.setProperty('--text-primary', d.customStyle.text);
-        if (d.customStyle.font) root.style.setProperty('font-family', d.customStyle.font);
+      const settings = d.pageSettings || d.customStyle || {};
+      const root = document.documentElement;
+      if (settings.canvasWidth) root.style.setProperty('--canvas-max-width', settings.canvasWidth);
+      if (settings.bg) root.style.setProperty('--bg-primary', settings.bg);
+      if (settings.card) root.style.setProperty('--bg-card', settings.card);
+      if (settings.primary) root.style.setProperty('--primary', settings.primary);
+      if (settings.text) root.style.setProperty('--text-primary', settings.text);
+      if (settings.font) root.style.setProperty('font-family', settings.font);
+
+      if (d.name) {
+        document.title = d.name + ' - Portfolio';
       }
 
-      // Hide Sections
-      if (d.hiddenSections) {
-        if (d.hiddenSections.includes('skills')) document.getElementById('skillsContainer').style.display = 'none';
-        if (d.hiddenSections.includes('projects')) {
-          document.querySelectorAll('.projects-header, #projectsGrid').forEach(el => el.style.display = 'none');
+      // 2. Render Blocks
+      const canvas = document.getElementById('modularCanvas');
+      canvas.innerHTML = '';
+
+      let blocks = [];
+      if (d.customBlocks && Array.isArray(d.customBlocks) && d.customBlocks.length > 0) {
+        blocks = d.customBlocks;
+      } else {
+        blocks = generateStarterBlocks(d);
+      }
+
+      blocks.forEach(b => {
+        const blockEl = document.createElement('div');
+        blockEl.className = 'canvas-block';
+
+        let innerHtml = '';
+
+        if (b.type === 'image') {
+          const alignClass = 'align-' + (b.align || 'center');
+          const sizeClass = 'size-' + (b.size || 'medium');
+          const radiusClass = 'radius-' + (b.radius || 'rounded');
+          const imgUrl = b.url || 'logo.png';
+          const imgTag = '<img src="' + esc(imgUrl) + '" alt="Image" loading="lazy">';
+          const linkedImg = b.link ? '<a href="' + esc(b.link) + '" target="_blank">' + imgTag + '</a>' : imgTag;
+          const captionTag = b.caption ? '<div class="block-image-caption">' + esc(b.caption) + '</div>' : '';
+
+          innerHtml = '<div class="block-image-wrap ' + alignClass + ' ' + sizeClass + ' ' + radiusClass + '">' +
+                        '<div class="block-image-content">' + linkedImg + captionTag + '</div>' +
+                      '</div>';
         }
-      }
-
-      // Render Custom Links
-      const linksContainer = document.getElementById('customLinksPreview');
-      if (linksContainer) {
-        linksContainer.innerHTML = '';
-        if (d.customLinks) {
-          d.customLinks.forEach(l => {
-            linksContainer.innerHTML += `<a href="${esc(l.url)}" target="_blank" class="custom-link-btn">${esc(l.title)}</a>`;
-          });
+        else if (b.type === 'text') {
+          const alignClass = 'align-' + (b.align || 'center');
+          const styleClass = 'style-' + (b.style || 'body');
+          const colorStyle = b.color ? 'style="color:' + esc(b.color) + '"' : '';
+          innerHtml = '<div class="block-text ' + alignClass + ' ' + styleClass + '" ' + colorStyle + '>' + esc(b.content || '') + '</div>';
         }
-      }
+        else if (b.type === 'buttons') {
+          const layoutClass = 'layout-' + (b.layout || 'column');
+          const alignClass = 'align-' + (b.align || 'center');
+          const btnsHtml = (b.buttons || []).map(btn => {
+            const btnStyle = 'btn-' + (btn.style || 'solid');
+            return '<a href="' + esc(btn.url || '#') + '" target="_blank" class="block-btn-item ' + btnStyle + '">' + esc(btn.title || 'Link') + '</a>';
+          }).join('');
 
+          innerHtml = '<div class="block-buttons ' + layoutClass + ' ' + alignClass + '">' + btnsHtml + '</div>';
+        }
+        else if (b.type === 'divider') {
+          const styleClass = 'style-' + (b.style || 'line');
+          innerHtml = '<div class="block-divider ' + styleClass + '"><hr></div>';
+        }
+        else if (b.type === 'video') {
+          const videoUrl = b.url || '';
+          let mediaTag = '';
+          if (videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be')) {
+            const embedUrl = getYouTubeEmbedUrl(videoUrl);
+            mediaTag = '<iframe src="' + embedUrl + '" allowfullscreen></iframe>';
+          } else {
+            const autoplayAttr = b.autoplay ? 'autoplay loop muted playsinline' : 'controls';
+            mediaTag = '<video src="' + esc(videoUrl) + '" ' + autoplayAttr + '></video>';
+          }
+          innerHtml = '<div class="block-video">' + mediaTag + '</div>';
+        }
 
-      const coverEl = document.getElementById('coverPhotoPreview');
+        blockEl.innerHTML = innerHtml;
+        canvas.appendChild(blockEl);
+      });
+    }
+
+    function generateStarterBlocks(d) {
+      const blocks = [];
       if (d.coverPhoto) {
-        coverEl.style.backgroundImage = `url('${d.coverPhoto}')`;
-      } else {
-        coverEl.style.backgroundImage = 'linear-gradient(135deg, var(--bg-secondary), var(--border))';
+        blocks.push({ type: 'image', url: d.coverPhoto, size: 'full', radius: 'rounded', align: 'center' });
       }
+      blocks.push({ type: 'image', url: d.photoURL || 'logo.png', size: 'avatar', radius: 'circle', align: 'center' });
+      blocks.push({ type: 'text', content: d.name || 'Space Engineer', style: 'h1', align: 'center' });
+      if (d.username) blocks.push({ type: 'text', content: '@' + d.username, style: 'h3', align: 'center', color: 'var(--primary)' });
+      if (d.bio) blocks.push({ type: 'text', content: d.bio, style: 'body', align: 'center' });
 
-      const av = document.getElementById('profileAvatar');
-      if (d.photoURL) {
-        av.style.backgroundImage = `url('${d.photoURL}')`;
-        av.textContent = '';
-      }
-
-      document.getElementById('profileName').innerText = d.name || 'Space Engineer';
-      document.getElementById('profileUsername').innerText = '@' + (d.username || 'user');
-      document.getElementById('profileBio').innerText = d.bio || '';
-
-      const socialsEl = document.getElementById('profileSocials');
-      socialsEl.innerHTML = '';
+      const linkBtns = [];
       const social = d.social || {};
-      if (social.github) socialsEl.innerHTML += `<a href="${esc(social.github)}" target="_blank"> GitHub</a>`;
-      if (social.instagram) socialsEl.innerHTML += `<a href="${esc(social.instagram)}" target="_blank"> Instagram</a>`;
-      if (social.website) socialsEl.innerHTML += `<a href="${esc(social.website)}" target="_blank"> Website</a>`;
+      if (social.github) linkBtns.push({ title: 'GitHub', url: social.github, style: 'outline' });
+      if (social.instagram) linkBtns.push({ title: 'Instagram', url: social.instagram, style: 'outline' });
+      if (social.website) linkBtns.push({ title: 'Website', url: social.website, style: 'outline' });
+      (d.customLinks || []).forEach(l => {
+        if (l.title && l.url) linkBtns.push({ title: l.title, url: l.url, style: 'solid' });
+      });
 
-      const skillsContainer = document.getElementById('skillsContainer');
-      skillsContainer.innerHTML = '';
-      if (d.skills) {
-        d.skills.forEach(skill => {
-          skillsContainer.innerHTML += `<div class="skill-badge">${esc(skill)}</div>`;
-        });
+      if (linkBtns.length > 0) {
+        blocks.push({ type: 'buttons', buttons: linkBtns, layout: 'column', align: 'center' });
       }
+      return blocks;
+    }
 
-      const grid = document.getElementById('projectsGrid');
-      grid.innerHTML = '';
-      if (d.projects) {
-        Object.values(d.projects).forEach(p => {
-          grid.innerHTML += `
-            <div class="project-card">
-              <div class="proj-img" style="background-image:url('${p.image || ''}')"></div>
-              <div class="proj-info">
-                <h3>${esc(p.title)}</h3>
-                <p>${esc(p.description)}</p>
-              </div>
-            </div>
-          `;
-        });
-      } else {
-        grid.innerHTML = '<p style="color:var(--text-muted); grid-column:1/-1;">No projects added yet.</p>';
+    function getYouTubeEmbedUrl(url) {
+      let videoId = '';
+      if (url.includes('youtu.be/')) {
+        videoId = url.split('youtu.be/')[1].split('?')[0];
+      } else if (url.includes('watch?v=')) {
+        videoId = url.split('watch?v=')[1].split('&')[0];
       }
+      return videoId ? 'https://www.youtube.com/embed/' + videoId : url;
     }
 
     function esc(str) {

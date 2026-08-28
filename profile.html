@@ -6,7 +6,7 @@
   <title>Portfolio - ESTL Tech</title>
   <link rel="stylesheet" href="style.css?v=6">
   <link rel="stylesheet" href="auth.css?v=3">
-  <link rel="stylesheet" href="profile.css?v=4">
+  <link rel="stylesheet" href="profile.css?v=5">
   <link rel="icon" type="image/png" href="logo.png">
   <script>
     window.onerror = function(msg, url, line) {
@@ -45,6 +45,9 @@
   <!-- ===== PROFILE CONTENT ===== -->
   <section class="section profile-section">
     <div class="container profile-container">
+      <!-- Modular Canvas for Carrd-style Elements -->
+      <div class="modular-canvas" id="modularCanvas"></div>
+
 
       <!-- Cover Photo -->
       <div class="cover-photo-wrap" id="coverPhotoPreview">
@@ -116,53 +119,79 @@
     <button class="toolbar-btn" style="color:var(--danger)" onclick="logoutUser()">Sign Out</button>
   </div>
 
-  <!-- ===== CARRD.CO STYLE SIDEBAR (OWNER ONLY) ===== -->
+  
+  <!-- ===== CARRD.CO MODULAR BUILDER SIDEBAR (OWNER ONLY) ===== -->
   <div class="builder-sidebar owner-only" id="builderSidebar">
     <div class="sidebar-header">
-      <h3>Design Mode </h3>
+      <h3 style="font-size: 16px; font-weight: 700;">Page Builder</h3>
       <button class="sidebar-close" onclick="toggleSidebar()">✕</button>
     </div>
 
-    <!-- Appearance -->
+    <!-- Quick Add Elements -->
     <div class="sidebar-section">
-      <h4>Appearance (Colors)</h4>
-      <div class="color-picker-group">
-        <label>Background Color</label>
-        <input type="color" id="colorBg" onchange="updateLivePreview()">
+      <h4>Add Element</h4>
+      <div class="builder-element-grid">
+        <button class="add-element-btn" onclick="addNewBlock('image')">+ Image</button>
+        <button class="add-element-btn" onclick="addNewBlock('text')">+ Text</button>
+        <button class="add-element-btn" onclick="addNewBlock('buttons')">+ Button</button>
+        <button class="add-element-btn" onclick="addNewBlock('divider')">+ Divider</button>
+        <button class="add-element-btn" onclick="addNewBlock('video')">+ Video</button>
+        <button class="add-element-btn" onclick="resetToDefaultBlocks()" style="background:transparent; border-color:var(--border); color:var(--text-muted);" title="Reset to Starter Profile">↺ Reset</button>
+      </div>
+    </div>
+
+    <!-- Active Elements List -->
+    <div class="sidebar-section">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <h4 style="margin:0;">Page Elements (<span id="blocksCount">0</span>)</h4>
+      </div>
+      <div id="sidebarBlocksList" style="max-height: 380px; overflow-y: auto; padding-right: 4px;">
+        <!-- Dynamically rendered by profile.js -->
+      </div>
+    </div>
+
+    <!-- Page Settings -->
+    <div class="sidebar-section">
+      <h4>Page Appearance</h4>
+      <div class="editor-row">
+        <label>Container Width</label>
+        <select class="editor-select" id="settingCanvasWidth" onchange="updatePageStylePreview()">
+          <option value="600px">Compact (600px)</option>
+          <option value="800px" selected>Standard (800px)</option>
+          <option value="1000px">Wide (1000px)</option>
+          <option value="100%">Full Width (100%)</option>
+        </select>
       </div>
       <div class="color-picker-group">
-        <label>Card Color</label>
-        <input type="color" id="colorCard" onchange="updateLivePreview()">
+        <label>Page Background</label>
+        <input type="color" id="colorBg" onchange="updatePageStylePreview()">
       </div>
       <div class="color-picker-group">
-        <label>Primary Color</label>
-        <input type="color" id="colorPrimary" onchange="updateLivePreview()">
+        <label>Card Background</label>
+        <input type="color" id="colorCard" onchange="updatePageStylePreview()">
+      </div>
+      <div class="color-picker-group">
+        <label>Primary Brand</label>
+        <input type="color" id="colorPrimary" onchange="updatePageStylePreview()">
       </div>
       <div class="color-picker-group">
         <label>Text Color</label>
-        <input type="color" id="colorText" onchange="updateLivePreview()">
+        <input type="color" id="colorText" onchange="updatePageStylePreview()">
       </div>
-      <button class="btn btn-ghost" style="width:100%; margin-top:10px; font-size:12px;" onclick="resetColors()">Reset to Default</button>
+      <div class="editor-row" style="margin-top:10px;">
+        <label>Font Family</label>
+        <select class="editor-select" id="fontSelector" onchange="updatePageStylePreview()">
+          <option value="Inter, sans-serif">Inter (Modern & Clean)</option>
+          <option value="'Courier New', monospace">Courier (Code & Tech)</option>
+          <option value="'Times New Roman', serif">Times (Editorial)</option>
+          <option value="system-ui, sans-serif">System Default</option>
+        </select>
+      </div>
     </div>
 
-    <!-- Typography -->
-    <div class="sidebar-section">
-      <h4>Typography</h4>
-      <select class="font-selector" id="fontSelector" onchange="updateLivePreview()">
-        <option value="Inter, sans-serif">Inter (Modern)</option>
-        <option value="'Courier New', monospace">Courier (Hacker)</option>
-        <option value="'Times New Roman', serif">Times (Classic)</option>
-        <option value="'Comic Sans MS', cursive">Comic (Fun)</option>
-      </select>
-    </div>
+    <button class="btn btn-primary" style="width:100%; padding:14px; margin-top:10px; font-size:15px; font-weight:700;" onclick="saveCarrdDesign()">Save & Publish</button>
+  </div>
 
-    <!-- Visibility -->
-    <div class="sidebar-section">
-      <h4>Sections Visibility</h4>
-      <div class="toggle-group">
-        <span>Show Stats Bar (XP, Level)</span>
-        <div class="toggle-switch on" id="toggleStats" onclick="toggleVisibility('toggleStats', '.stats-bar')"></div>
-      </div>
       <div class="toggle-group">
         <span>Show Skills</span>
         <div class="toggle-switch on" id="toggleSkills" onclick="toggleVisibility('toggleSkills', '#skillsContainer')"></div>
@@ -302,6 +331,6 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="auth-guard.js"></script>
   <script src="app.js?v=2"></script>
-  <script src="profile.js?v=6"></script>
+  <script src="profile.js?v=7"></script>
 </body>
 </html>

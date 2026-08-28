@@ -866,3 +866,401 @@ body.owner-view.sidebar-open {
 .builder-toolbar-btn {
   /* same as before */
 }
+
+
+/* ============================================================
+   CARRD.CO MODULAR BLOCK BUILDER STYLES
+   ============================================================ */
+
+/* --- Modular Canvas Container --- */
+.modular-canvas {
+  width: 100%;
+  max-width: var(--canvas-max-width, 800px);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  transition: max-width 0.3s ease;
+}
+
+/* Base Block */
+.canvas-block {
+  position: relative;
+  width: 100%;
+  transition: all 0.2s ease;
+}
+
+.owner-view .canvas-block:hover {
+  outline: 2px dashed var(--primary);
+  outline-offset: 4px;
+  border-radius: var(--radius);
+}
+
+.owner-view .canvas-block-actions {
+  position: absolute;
+  top: -12px;
+  right: 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 2px 8px;
+  display: none;
+  align-items: center;
+  gap: 6px;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.owner-view .canvas-block:hover .canvas-block-actions {
+  display: flex;
+}
+
+.canvas-block-actions button {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+.canvas-block-actions button:hover {
+  background: var(--bg-secondary);
+  color: var(--primary);
+}
+
+/* --- Block: Image --- */
+.block-image-wrap {
+  width: 100%;
+  display: flex;
+}
+.block-image-wrap.align-center { justify-content: center; text-align: center; }
+.block-image-wrap.align-left { justify-content: flex-start; text-align: left; }
+.block-image-wrap.align-right { justify-content: flex-end; text-align: right; }
+
+.block-image-content {
+  display: inline-block;
+  max-width: 100%;
+}
+.block-image-content img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  transition: transform 0.2s ease;
+}
+.block-image-content a:hover img {
+  transform: scale(1.02);
+}
+
+/* Image Sizes */
+.block-image-wrap.size-full .block-image-content { width: 100%; }
+.block-image-wrap.size-full .block-image-content img { width: 100%; object-fit: cover; max-height: 450px; }
+.block-image-wrap.size-large .block-image-content { width: 75%; }
+.block-image-wrap.size-medium .block-image-content { width: 50%; }
+.block-image-wrap.size-small .block-image-content { width: 220px; }
+.block-image-wrap.size-avatar .block-image-content { width: 120px; height: 120px; }
+.block-image-wrap.size-avatar .block-image-content img { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid var(--border); }
+
+/* Image Radius */
+.block-image-wrap.radius-none img { border-radius: 0; }
+.block-image-wrap.radius-rounded img { border-radius: var(--radius-lg, 16px); }
+.block-image-wrap.radius-circle img { border-radius: 50%; }
+
+.block-image-caption {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+/* --- Block: Text --- */
+.block-text {
+  word-wrap: break-word;
+  line-height: 1.6;
+}
+.block-text.align-center { text-align: center; }
+.block-text.align-left { text-align: left; }
+.block-text.align-right { text-align: right; }
+
+.block-text.style-h1 {
+  font-size: clamp(28px, 4vw, 42px);
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+.block-text.style-h2 {
+  font-size: clamp(20px, 3vw, 28px);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+.block-text.style-h3 {
+  font-size: clamp(16px, 2.5vw, 20px);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+.block-text.style-body {
+  font-size: 15px;
+  color: var(--text-secondary);
+}
+.block-text.style-quote {
+  font-size: 17px;
+  font-style: italic;
+  color: var(--text-primary);
+  border-left: 3px solid var(--primary);
+  padding-left: 16px;
+  margin: 10px 0;
+}
+
+/* --- Block: Buttons / Links --- */
+.block-buttons {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+.block-buttons.layout-column {
+  flex-direction: column;
+}
+.block-buttons.layout-row {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+.block-buttons.align-center { justify-content: center; }
+.block-buttons.align-left { justify-content: flex-start; }
+.block-buttons.align-right { justify-content: flex-end; }
+
+.block-btn-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 24px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  min-width: 140px;
+}
+.block-buttons.layout-column .block-btn-item {
+  width: 100%;
+}
+.block-btn-item.btn-solid {
+  background: var(--primary);
+  color: var(--text-on-primary);
+  border: 1px solid transparent;
+}
+.block-btn-item.btn-solid:hover {
+  opacity: 0.9;
+  transform: translateY(-2px);
+}
+.block-btn-item.btn-outline {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+.block-btn-item.btn-outline:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-2px);
+}
+.block-btn-item.btn-ghost {
+  background: rgba(255,255,255,0.03);
+  color: var(--text-secondary);
+  border: 1px solid transparent;
+}
+.block-btn-item.btn-ghost:hover {
+  background: rgba(255,255,255,0.08);
+  color: var(--text-primary);
+}
+
+/* --- Block: Divider --- */
+.block-divider {
+  width: 100%;
+  padding: 10px 0;
+}
+.block-divider hr {
+  border: none;
+  margin: 0;
+}
+.block-divider.style-line hr {
+  border-top: 1px solid var(--border);
+}
+.block-divider.style-dashed hr {
+  border-top: 1px dashed var(--border);
+}
+.block-divider.style-dots hr {
+  border-top: 2px dotted var(--border);
+  width: 60px;
+  margin: 0 auto;
+}
+.block-divider.style-space {
+  height: 24px;
+}
+
+/* --- Block: Video --- */
+.block-video {
+  width: 100%;
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  background: #000;
+}
+.block-video video, .block-video iframe {
+  width: 100%;
+  display: block;
+  border: none;
+  aspect-ratio: 16/9;
+}
+
+/* --- Block: Card Wrapper (Optional Box Container) --- */
+.block-card-container {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, 16px);
+  padding: 32px;
+  box-shadow: var(--shadow-card);
+}
+
+/* ============================================================
+   SIDEBAR BLOCK MANAGER STYLES
+   ============================================================ */
+
+.builder-element-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.add-element-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: 10px 8px;
+  border-radius: var(--radius);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+.add-element-btn:hover {
+  background: var(--primary);
+  color: var(--text-on-primary);
+  border-color: var(--primary);
+}
+
+/* Block Item in Sidebar */
+.sidebar-block-item {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 10px;
+  overflow: hidden;
+  transition: border-color 0.2s ease;
+}
+.sidebar-block-item.active {
+  border-color: var(--primary);
+}
+.sidebar-block-header {
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  background: rgba(255,255,255,0.02);
+}
+.sidebar-block-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sidebar-block-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.sidebar-block-controls button {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+.sidebar-block-controls button:hover {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+.sidebar-block-controls button.btn-del:hover {
+  color: var(--danger);
+}
+
+.sidebar-block-body {
+  padding: 12px;
+  border-top: 1px solid var(--border);
+  display: none;
+}
+.sidebar-block-item.open .sidebar-block-body {
+  display: block;
+}
+
+.editor-row {
+  margin-bottom: 10px;
+}
+.editor-row label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+.editor-select, .editor-input {
+  width: 100%;
+  padding: 8px 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+.editor-select:focus, .editor-input:focus {
+  border-color: var(--primary);
+  outline: none;
+}
+.editor-segmented {
+  display: flex;
+  gap: 4px;
+  background: var(--bg-card);
+  padding: 3px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+.editor-segmented button {
+  flex: 1;
+  background: none;
+  border: none;
+  padding: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  border-radius: 3px;
+  cursor: pointer;
+}
+.editor-segmented button.active {
+  background: var(--primary);
+  color: var(--text-on-primary);
+  font-weight: 600;
+}
