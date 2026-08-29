@@ -3,23 +3,40 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Engineer Portfolio - ESTL Tech</title>
+  <title>Portfolio</title>
   <link rel="stylesheet" href="style.css?v=6">
-  <link rel="stylesheet" href="profile.css?v=5">
+  <link rel="stylesheet" href="profile.css?v=8">
   <link rel="icon" type="image/png" href="logo.png">
   <style>
-    body { padding-top: 0; min-height: 100vh; display: flex; flex-direction: column; }
+    body { 
+      margin: 0; 
+      padding: 0; 
+      min-height: 100vh; 
+      background-color: var(--carrd-bg, #e8eaed);
+      display: flex; 
+      flex-direction: column; 
+      font-family: 'Inter', sans-serif;
+    }
     .navbar { display: none !important; }
-    .portfolio-main { flex: 1; padding: 40px 20px 80px; }
+    .portfolio-main { 
+      flex: 1; 
+      display: flex; 
+      justify-content: center; 
+      align-items: center; 
+      padding: 60px 20px 80px; 
+    }
     .portfolio-footer {
       text-align: center;
-      padding: 30px 20px;
-      color: var(--text-muted);
+      padding: 24px 20px;
+      color: #94a3b8;
       font-size: 13px;
-      border-top: 1px solid var(--border);
     }
     .portfolio-footer a {
-      color: var(--primary);
+      color: var(--primary, #2563eb);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .portfolio-footer a:hover {
       text-decoration: underline;
     }
   </style>
@@ -29,8 +46,8 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <main class="portfolio-main">
-    <div class="modular-canvas" id="modularCanvas">
-      <div style="text-align:center; padding:60px 20px; color:var(--text-muted);">
+    <div class="carrd-site-card" id="carrdSiteCard" style="margin:0 auto;">
+      <div style="text-align:center; padding:60px 20px; color:#94a3b8;">
         Loading portfolio...
       </div>
     </div>
@@ -58,10 +75,10 @@
       const urlParams = new URLSearchParams(window.location.search);
       const uidQuery = urlParams.get('id') || urlParams.get('user');
       
-      const canvas = document.getElementById('modularCanvas');
+      const card = document.getElementById('carrdSiteCard');
 
       if (!uidQuery) {
-        canvas.innerHTML = '<div style="text-align:center; padding:60px; color:var(--text-muted);"><h3>Invalid Link</h3><p>Please provide a valid user ID.</p></div>';
+        card.innerHTML = '<div style="text-align:center; padding:40px; color:#94a3b8;"><h3>Invalid Link</h3><p>Please provide a valid user ID.</p></div>';
         return;
       }
 
@@ -71,51 +88,55 @@
             const d = snapshot.val();
             renderPublicPortfolio(d);
           } else {
-            canvas.innerHTML = '<div style="text-align:center; padding:60px; color:var(--text-muted);"><h3>User Not Found</h3><p>No engineer found with this link.</p></div>';
+            card.innerHTML = '<div style="text-align:center; padding:40px; color:#94a3b8;"><h3>User Not Found</h3><p>No page found with this link.</p></div>';
           }
         } catch(renderErr) {
-          canvas.innerHTML = '<div style="text-align:center; padding:60px; color:var(--danger);"><h3>Render Error</h3><p>' + renderErr.message + '</p></div>';
+          card.innerHTML = '<div style="text-align:center; padding:40px; color:#ef4444;"><h3>Render Error</h3><p>' + renderErr.message + '</p></div>';
         }
       }).catch(err => {
-        canvas.innerHTML = '<div style="text-align:center; padding:60px; color:var(--danger);"><h3>Error Loading Data</h3><p>' + err.message + '</p></div>';
+        card.innerHTML = '<div style="text-align:center; padding:40px; color:#ef4444;"><h3>Error Loading Data</h3><p>' + err.message + '</p></div>';
       });
     });
 
     function renderPublicPortfolio(d) {
-      // 1. Apply Theme & Page Settings
-      if (d.theme) document.body.classList.add('theme-' + d.theme);
-
-      const settings = d.pageSettings || d.customStyle || {};
+      // Apply Page Settings
+      const s = d.pageSettings || d.customStyle || {};
       const root = document.documentElement;
-      if (settings.canvasWidth) root.style.setProperty('--canvas-max-width', settings.canvasWidth);
-      if (settings.bg) root.style.setProperty('--bg-primary', settings.bg);
-      if (settings.card) root.style.setProperty('--bg-card', settings.card);
-      if (settings.primary) root.style.setProperty('--primary', settings.primary);
-      if (settings.text) root.style.setProperty('--text-primary', settings.text);
-      if (settings.font) root.style.setProperty('font-family', settings.font);
+      if (s.cardWidth) root.style.setProperty('--card-max-width', s.cardWidth);
+      if (s.cardRadius) root.style.setProperty('--card-radius', s.cardRadius);
+      if (s.bg) root.style.setProperty('--carrd-bg', s.bg);
+      if (s.cardBg) root.style.setProperty('--card-bg', s.cardBg);
+      if (s.primary) root.style.setProperty('--primary', s.primary);
+      if (s.font) root.style.setProperty('font-family', s.font);
 
-      if (d.name) {
-        document.title = d.name + ' - Portfolio';
+      if (s.siteTitle || d.name) {
+        document.title = s.siteTitle || (d.name + ' - Portfolio');
       }
 
-      // 2. Render Blocks
-      const canvas = document.getElementById('modularCanvas');
-      canvas.innerHTML = '';
+      // Render Blocks
+      const card = document.getElementById('carrdSiteCard');
+      card.innerHTML = '';
 
       let blocks = [];
       if (d.customBlocks && Array.isArray(d.customBlocks) && d.customBlocks.length > 0) {
         blocks = d.customBlocks;
       } else {
-        blocks = generateStarterBlocks(d);
+        blocks = generatePublicFallbackBlocks(d);
       }
 
       blocks.forEach(b => {
         const blockEl = document.createElement('div');
         blockEl.className = 'canvas-block';
 
-        let innerHtml = '';
+        let html = '';
 
-        if (b.type === 'image') {
+        if (b.type === 'text') {
+          const alignClass = 'align-' + (b.align || 'left');
+          const styleClass = 'style-' + (b.style || 'body');
+          const colorAttr = b.color ? 'style="color:' + esc(b.color) + '"' : '';
+          html = '<div class="block-text ' + alignClass + ' ' + styleClass + '" ' + colorAttr + '>' + esc(b.content || '') + '</div>';
+        }
+        else if (b.type === 'image') {
           const alignClass = 'align-' + (b.align || 'center');
           const sizeClass = 'size-' + (b.size || 'medium');
           const radiusClass = 'radius-' + (b.radius || 'rounded');
@@ -124,29 +145,29 @@
           const linkedImg = b.link ? '<a href="' + esc(b.link) + '" target="_blank">' + imgTag + '</a>' : imgTag;
           const captionTag = b.caption ? '<div class="block-image-caption">' + esc(b.caption) + '</div>' : '';
 
-          innerHtml = '<div class="block-image-wrap ' + alignClass + ' ' + sizeClass + ' ' + radiusClass + '">' +
-                        '<div class="block-image-content">' + linkedImg + captionTag + '</div>' +
-                      '</div>';
-        }
-        else if (b.type === 'text') {
-          const alignClass = 'align-' + (b.align || 'center');
-          const styleClass = 'style-' + (b.style || 'body');
-          const colorStyle = b.color ? 'style="color:' + esc(b.color) + '"' : '';
-          innerHtml = '<div class="block-text ' + alignClass + ' ' + styleClass + '" ' + colorStyle + '>' + esc(b.content || '') + '</div>';
+          html = '<div class="block-image-wrap ' + alignClass + ' ' + sizeClass + ' ' + radiusClass + '">' +
+                   '<div class="block-image-content">' + linkedImg + captionTag + '</div>' +
+                 '</div>';
         }
         else if (b.type === 'buttons') {
           const layoutClass = 'layout-' + (b.layout || 'column');
           const alignClass = 'align-' + (b.align || 'center');
           const btnsHtml = (b.buttons || []).map(btn => {
             const btnStyle = 'btn-' + (btn.style || 'solid');
-            return '<a href="' + esc(btn.url || '#') + '" target="_blank" class="block-btn-item ' + btnStyle + '">' + esc(btn.title || 'Link') + '</a>';
+            return '<a href="' + esc(btn.url || '#') + '" target="_blank" class="block-btn-item ' + btnStyle + '">' + esc(btn.title || 'Button') + '</a>';
           }).join('');
 
-          innerHtml = '<div class="block-buttons ' + layoutClass + ' ' + alignClass + '">' + btnsHtml + '</div>';
+          html = '<div class="block-buttons ' + layoutClass + ' ' + alignClass + '">' + btnsHtml + '</div>';
         }
-        else if (b.type === 'divider') {
-          const styleClass = 'style-' + (b.style || 'line');
-          innerHtml = '<div class="block-divider ' + styleClass + '"><hr></div>';
+        else if (b.type === 'gallery') {
+          const cols = b.cols || 3;
+          const imgs = b.images || ['logo.png', 'logo.png', 'logo.png'];
+          const imgsHtml = imgs.map(img => 
+            '<div style="aspect-ratio:1; overflow:hidden; border-radius:6px; background:#f1f5f9;">' +
+              '<img src="' + esc(img) + '" style="width:100%; height:100%; object-fit:cover;">' +
+            '</div>'
+          ).join('');
+          html = '<div style="display:grid; grid-template-columns:repeat(' + cols + ', 1fr); gap:12px; width:100%;">' + imgsHtml + '</div>';
         }
         else if (b.type === 'video') {
           const videoUrl = b.url || '';
@@ -155,32 +176,46 @@
             const embedUrl = getYouTubeEmbedUrl(videoUrl);
             mediaTag = '<iframe src="' + embedUrl + '" allowfullscreen></iframe>';
           } else {
-            const autoplayAttr = b.autoplay ? 'autoplay loop muted playsinline' : 'controls';
-            mediaTag = '<video src="' + esc(videoUrl) + '" ' + autoplayAttr + '></video>';
+            mediaTag = '<video src="' + esc(videoUrl)" autoplay loop muted playsinline></video>';
           }
-          innerHtml = '<div class="block-video">' + mediaTag + '</div>';
+          html = '<div class="block-video">' + mediaTag + '</div>';
+        }
+        else if (b.type === 'divider') {
+          const styleClass = 'style-' + (b.style || 'line');
+          html = '<div class="block-divider ' + styleClass + '"><hr></div>';
+        }
+        else if (b.type === 'icons') {
+          const iconsList = b.icons || [
+            { name: 'Instagram', url: (d.social && d.social.instagram) || '#' },
+            { name: 'GitHub', url: (d.social && d.social.github) || '#' },
+            { name: 'Website', url: (d.social && d.social.website) || '#' }
+          ];
+          const iconsHtml = iconsList.map(ic => 
+            '<a href="' + esc(ic.url) + '" target="_blank" class="profile-socials" style="display:inline-flex; padding:6px 14px; background:#f1f5f9; border-radius:999px; text-decoration:none; font-size:12px; font-weight:600; color:#334155;">' +
+              esc(ic.name) +
+            '</a>'
+          ).join('');
+          html = '<div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:' + (b.align || 'center') + '; width:100%;">' + iconsHtml + '</div>';
         }
 
-        blockEl.innerHTML = innerHtml;
-        canvas.appendChild(blockEl);
+        blockEl.innerHTML = html;
+        card.appendChild(blockEl);
       });
     }
 
-    function generateStarterBlocks(d) {
+    function generatePublicFallbackBlocks(d) {
       const blocks = [];
-      if (d.coverPhoto) {
-        blocks.push({ type: 'image', url: d.coverPhoto, size: 'full', radius: 'rounded', align: 'center' });
+      if (d.photoURL) {
+        blocks.push({ type: 'image', url: d.photoURL, size: 'avatar', radius: 'circle', align: 'center' });
       }
-      blocks.push({ type: 'image', url: d.photoURL || 'logo.png', size: 'avatar', radius: 'circle', align: 'center' });
-      blocks.push({ type: 'text', content: d.name || 'Space Engineer', style: 'h1', align: 'center' });
-      if (d.username) blocks.push({ type: 'text', content: '@' + d.username, style: 'h3', align: 'center', color: 'var(--primary)' });
+      blocks.push({ type: 'text', content: d.name || 'My Untitled Site', style: 'h1', align: 'center' });
       if (d.bio) blocks.push({ type: 'text', content: d.bio, style: 'body', align: 'center' });
 
       const linkBtns = [];
       const social = d.social || {};
       if (social.github) linkBtns.push({ title: 'GitHub', url: social.github, style: 'outline' });
       if (social.instagram) linkBtns.push({ title: 'Instagram', url: social.instagram, style: 'outline' });
-      if (social.website) linkBtns.push({ title: 'Website', url: social.website, style: 'outline' });
+      if (social.website) linkBtns.push({ title: 'Website', url: social.website, style: 'solid' });
       (d.customLinks || []).forEach(l => {
         if (l.title && l.url) linkBtns.push({ title: l.title, url: l.url, style: 'solid' });
       });
@@ -193,11 +228,8 @@
 
     function getYouTubeEmbedUrl(url) {
       let videoId = '';
-      if (url.includes('youtu.be/')) {
-        videoId = url.split('youtu.be/')[1].split('?')[0];
-      } else if (url.includes('watch?v=')) {
-        videoId = url.split('watch?v=')[1].split('&')[0];
-      }
+      if (url.includes('youtu.be/')) videoId = url.split('youtu.be/')[1].split('?')[0];
+      else if (url.includes('watch?v=')) videoId = url.split('watch?v=')[1].split('&')[0];
       return videoId ? 'https://www.youtube.com/embed/' + videoId : url;
     }
 

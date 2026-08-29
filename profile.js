@@ -1,4 +1,4 @@
-// profile.js - Carrd.co Modular Block Builder Engine
+// profile.js - Exact Carrd.co Visual Builder Engine
 
 const firebaseConfig = {
   apiKey: "AIzaSyBydQb6wDh4X7JA0JkcuhToJam66VD3bTM",
@@ -12,16 +12,20 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 
 let currentUser = null;
 let userRef = null;
-let isOwner = false;
 let targetUid = null;
 let profileData = {};
 let activeBlocks = [];
+let selectedBlockId = null;
+let historyStack = [];
+let historyIndex = -1;
+
 let pageSettings = {
-  canvasWidth: '800px',
-  bg: '',
-  card: '',
-  primary: '',
-  text: '',
+  siteTitle: 'My Untitled Site',
+  cardWidth: '680px',
+  cardRadius: '8px',
+  cardBg: '#ffffff',
+  bg: '#e8eaed',
+  primary: '#2563eb',
   font: 'Inter, sans-serif'
 };
 
@@ -35,212 +39,205 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!targetUid) {
       if (sessionStorage.getItem('guestMode') === 'true') {
-        showGuestState();
+        renderGuestMode();
       } else {
         window.location.href = 'auth.html';
       }
       return;
     }
 
-    isOwner = (user && user.uid === targetUid);
     userRef = firebase.database().ref('users/' + targetUid);
-
-    if (isOwner && !viewUserId) {
-      document.body.classList.add('owner-view');
-      const tb = document.getElementById('builderToolbar');
-      if (tb) tb.style.display = 'flex';
-    } else {
-      document.body.classList.remove('owner-view');
-    }
-
-    loadProfileData();
+    loadCarrdProfileData();
   });
 });
 
-// ===================== DATA LOADING =====================
+// ===================== DATA & HISTORY =====================
 
-function loadProfileData() {
-  userRef.on('value', snapshot => {
+function pushHistory() {
+  const state = JSON.stringify({ blocks: activeBlocks, settings: pageSettings });
+  if (historyIndex < historyStack.length - 1) {
+    historyStack = historyStack.slice(0, historyIndex + 1);
+  }
+  historyStack.push(state);
+  if (historyStack.length > 30) historyStack.shift();
+  historyIndex = historyStack.length - 1;
+}
+
+function undoAction() {
+  if (historyIndex > 0) {
+    historyIndex--;
+    const state = JSON.parse(historyStack[historyIndex]);
+    activeBlocks = state.blocks;
+    pageSettings = state.settings;
+    applyPageSettings(pageSettings);
+    renderCarrdCard();
+    if (selectedBlockId) openBlockDrawer(selectedBlockId);
+    showToast('Undo', 'info');
+  }
+}
+
+function redoAction() {
+  if (historyIndex < historyStack.length - 1) {
+    historyIndex++;
+    const state = JSON.parse(historyStack[historyIndex]);
+    activeBlocks = state.blocks;
+    pageSettings = state.settings;
+    applyPageSettings(pageSettings);
+    renderCarrdCard();
+    if (selectedBlockId) openBlockDrawer(selectedBlockId);
+    showToast('Redo', 'info');
+  }
+}
+
+function loadCarrdProfileData() {
+  userRef.once('value').then(snapshot => {
     if (!snapshot.exists()) {
-      renderEmptyState();
+      activeBlocks = createCarrdStarterBlocks({});
+      renderCarrdCard();
+      pushHistory();
       return;
     }
 
     const d = snapshot.val();
     profileData = d;
 
-    // Load or migrate blocks
+    // Load customBlocks or migrate
     if (d.customBlocks && Array.isArray(d.customBlocks) && d.customBlocks.length > 0) {
-      activeBlocks = JSON.parse(JSON.stringify(d.customBlocks));
+      activeBlocks = d.customBlocks;
     } else {
-      activeBlocks = createStarterBlocks(d);
+      activeBlocks = createCarrdStarterBlocks(d);
     }
 
     // Load page settings
     if (d.pageSettings) {
       pageSettings = { ...pageSettings, ...d.pageSettings };
-    } else if (d.customStyle) {
-      pageSettings.bg = d.customStyle.bg || '';
-      pageSettings.card = d.customStyle.card || '';
-      pageSettings.primary = d.customStyle.primary || '';
-      pageSettings.text = d.customStyle.text || '';
-      pageSettings.font = d.customStyle.font || 'Inter, sans-serif';
     }
 
-    applyPageStyles(pageSettings);
-    renderCanvasBlocks();
-
-    if (isOwner) {
-      initSidebarControls();
-      renderSidebarBlocksList();
-    }
-  }, err => {
-    console.error('Database read error:', err);
+    initPageSettingsInputs();
+    applyPageSettings(pageSettings);
+    renderCarrdCard();
+    pushHistory();
+  }).catch(err => {
+    console.error('Data load error:', err);
   });
 }
 
-function createStarterBlocks(d) {
-  const blocks = [];
-  
-  // 1. Cover Photo if exists
-  if (d.coverPhoto) {
+function createCarrdStarterBlocks(d) {
+  // If user has existing profile info, use it; otherwise provide Carrd default starter
+  if (d.name || d.bio || d.photoURL) {
+    const blocks = [];
+    if (d.photoURL) {
+      blocks.push({
+        id: genId('img'),
+        type: 'image',
+        url: d.photoURL,
+        size: 'avatar',
+        radius: 'circle',
+        align: 'center'
+      });
+    }
     blocks.push({
-      id: genId('block'),
-      type: 'image',
-      url: d.coverPhoto,
-      size: 'full',
-      radius: 'rounded',
-      align: 'center',
-      link: '',
-      caption: ''
-    });
-  }
-
-  // 2. Avatar
-  blocks.push({
-    id: genId('block'),
-    type: 'image',
-    url: d.photoURL || 'logo.png',
-    size: 'avatar',
-    radius: 'circle',
-    align: 'center',
-    link: '',
-    caption: ''
-  });
-
-  // 3. Name & Bio
-  blocks.push({
-    id: genId('block'),
-    type: 'text',
-    content: d.name || 'Space Engineer',
-    style: 'h1',
-    align: 'center',
-    color: ''
-  });
-
-  if (d.username) {
-    blocks.push({
-      id: genId('block'),
+      id: genId('txt'),
       type: 'text',
-      content: '@' + d.username,
-      style: 'h3',
-      align: 'center',
-      color: 'var(--primary)'
-    });
-  }
-
-  if (d.bio) {
-    blocks.push({
-      id: genId('block'),
-      type: 'text',
-      content: d.bio,
-      style: 'body',
-      align: 'center',
-      color: ''
-    });
-  }
-
-  // 4. Social & Custom Links
-  const linkBtns = [];
-  const social = d.social || {};
-  if (social.github) linkBtns.push({ title: 'GitHub', url: social.github, style: 'outline' });
-  if (social.instagram) linkBtns.push({ title: 'Instagram', url: social.instagram, style: 'outline' });
-  if (social.website) linkBtns.push({ title: 'Website', url: social.website, style: 'outline' });
-
-  (d.customLinks || []).forEach(l => {
-    if (l.title && l.url) linkBtns.push({ title: l.title, url: l.url, style: 'solid' });
-  });
-
-  if (linkBtns.length > 0) {
-    blocks.push({
-      id: genId('block'),
-      type: 'buttons',
-      buttons: linkBtns,
-      layout: 'column',
+      content: d.name || 'My Untitled Site',
+      style: 'h1',
       align: 'center'
     });
+    if (d.bio) {
+      blocks.push({
+        id: genId('txt'),
+        type: 'text',
+        content: d.bio,
+        style: 'body',
+        align: 'center'
+      });
+    }
+    const socialBtns = [];
+    if (d.social) {
+      if (d.social.github) socialBtns.push({ title: 'GitHub', url: d.social.github, style: 'outline' });
+      if (d.social.instagram) socialBtns.push({ title: 'Instagram', url: d.social.instagram, style: 'outline' });
+      if (d.social.website) socialBtns.push({ title: 'Website', url: d.social.website, style: 'solid' });
+    }
+    if (socialBtns.length > 0) {
+      blocks.push({
+        id: genId('btn'),
+        type: 'buttons',
+        buttons: socialBtns,
+        layout: 'column',
+        align: 'center'
+      });
+    }
+    return blocks;
   }
 
-  return blocks;
+  // Exact Carrd.co Default Starter
+  return [
+    {
+      id: genId('txt'),
+      type: 'text',
+      content: 'My Untitled Site',
+      style: 'h1',
+      align: 'left'
+    },
+    {
+      id: genId('txt'),
+      type: 'text',
+      content: "There's nothing here yet (well, except for this message), but clicking on the \"+\" button in the menu above should change that. Have fun! :)",
+      style: 'body',
+      align: 'left'
+    }
+  ];
 }
 
-// ===================== CANVAS RENDERING =====================
+// ===================== CARD RENDERING =====================
 
-function renderCanvasBlocks() {
-  const canvas = document.getElementById('modularCanvas');
-  if (!canvas) return;
+function renderCarrdCard() {
+  const card = document.getElementById('carrdSiteCard');
+  if (!card) return;
 
-  // Hide legacy elements to avoid duplication
-  const legacyHero = document.querySelector('.profile-hero');
-  const legacyCover = document.getElementById('coverPhotoPreview');
-  const legacyStats = document.querySelector('.stats-bar');
-  const legacyProjectsHeader = document.querySelector('.projects-header');
-  const legacyProjectsGrid = document.getElementById('projectsGrid');
-  if (legacyHero) legacyHero.style.display = 'none';
-  if (legacyCover) legacyCover.style.display = 'none';
-  if (legacyStats) legacyStats.style.display = 'none';
-  if (legacyProjectsHeader) legacyProjectsHeader.style.display = 'none';
-  if (legacyProjectsGrid) legacyProjectsGrid.style.display = 'none';
-
-  canvas.innerHTML = '';
+  card.innerHTML = '';
 
   if (activeBlocks.length === 0) {
-    canvas.innerHTML = '<div style="text-align:center; padding:60px 20px; color:var(--text-muted); border:2px dashed var(--border); border-radius:var(--radius-lg);">No elements yet. Click "+ Add Element" in Design Mode to start building!</div>';
+    card.innerHTML = `
+      <div style="text-align:center; padding:40px 20px; color:#94a3b8; border:2px dashed #cbd5e1; border-radius:6px;">
+        <p style="margin:0; font-size:14px;">Canvas is empty. Click the <strong>+</strong> button at the top to add elements.</p>
+      </div>
+    `;
     return;
   }
 
-  activeBlocks.forEach((b, index) => {
+  activeBlocks.forEach(b => {
     const blockEl = document.createElement('div');
-    blockEl.className = 'canvas-block';
-    blockEl.id = 'canvas_' + b.id;
+    blockEl.className = 'canvas-block' + (b.id === selectedBlockId ? ' selected' : '');
+    blockEl.id = 'block_' + b.id;
+    blockEl.onclick = (e) => {
+      e.stopPropagation();
+      selectBlock(b.id);
+    };
 
-    let innerHtml = '';
+    let html = '';
 
-    if (b.type === 'image') {
+    if (b.type === 'text') {
+      const alignClass = 'align-' + (b.align || 'left');
+      const styleClass = 'style-' + (b.style || 'body');
+      const colorAttr = b.color ? `style="color:${esc(b.color)}"` : '';
+      html = `<div class="block-text ${alignClass} ${styleClass}" ${colorAttr}>${esc(b.content || '')}</div>`;
+    }
+    else if (b.type === 'image') {
       const alignClass = 'align-' + (b.align || 'center');
       const sizeClass = 'size-' + (b.size || 'medium');
       const radiusClass = 'radius-' + (b.radius || 'rounded');
       const imgUrl = b.url || 'logo.png';
       const imgTag = `<img src="${esc(imgUrl)}" alt="Image" loading="lazy">`;
-      const linkedImg = b.link ? `<a href="${esc(b.link)}" target="_blank">${imgTag}</a>` : imgTag;
+      const linkedImg = b.link ? `<a href="${esc(b.link)}" target="_blank" onclick="event.preventDefault()">${imgTag}</a>` : imgTag;
       const captionTag = b.caption ? `<div class="block-image-caption">${esc(b.caption)}</div>` : '';
 
-      innerHtml = `
+      html = `
         <div class="block-image-wrap ${alignClass} ${sizeClass} ${radiusClass}">
           <div class="block-image-content">
             ${linkedImg}
             ${captionTag}
           </div>
-        </div>
-      `;
-    } 
-    else if (b.type === 'text') {
-      const alignClass = 'align-' + (b.align || 'center');
-      const styleClass = 'style-' + (b.style || 'body');
-      const colorStyle = b.color ? `style="color:${esc(b.color)}"` : '';
-      innerHtml = `
-        <div class="block-text ${alignClass} ${styleClass}" ${colorStyle}>
-          ${esc(b.content || '')}
         </div>
       `;
     }
@@ -249,122 +246,137 @@ function renderCanvasBlocks() {
       const alignClass = 'align-' + (b.align || 'center');
       const btnsHtml = (b.buttons || []).map(btn => {
         const btnStyle = 'btn-' + (btn.style || 'solid');
-        return `<a href="${esc(btn.url || '#')}" target="_blank" class="block-btn-item ${btnStyle}">${esc(btn.title || 'Link')}</a>`;
+        return `<a href="${esc(btn.url || '#')}" class="block-btn-item ${btnStyle}" onclick="event.preventDefault()">${esc(btn.title || 'Button')}</a>`;
       }).join('');
 
-      innerHtml = `
-        <div class="block-buttons ${layoutClass} ${alignClass}">
-          ${btnsHtml}
-        </div>
-      `;
+      html = `<div class="block-buttons ${layoutClass} ${alignClass}">${btnsHtml}</div>`;
     }
-    else if (b.type === 'divider') {
-      const styleClass = 'style-' + (b.style || 'line');
-      innerHtml = `
-        <div class="block-divider ${styleClass}">
-          <hr>
+    else if (b.type === 'gallery') {
+      const cols = b.cols || 3;
+      const imgs = b.images || ['logo.png', 'logo.png', 'logo.png'];
+      const imgsHtml = imgs.map(img => `
+        <div style="aspect-ratio:1; overflow:hidden; border-radius:6px; background:#f1f5f9;">
+          <img src="${esc(img)}" style="width:100%; height:100%; object-fit:cover;">
         </div>
-      `;
+      `).join('');
+      html = `<div style="display:grid; grid-template-columns:repeat(${cols}, 1fr); gap:12px; width:100%;">${imgsHtml}</div>`;
     }
     else if (b.type === 'video') {
-      const videoUrl = b.url || '';
+      const videoUrl = b.url || 'promo-video.mp4';
       let mediaTag = '';
       if (videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be')) {
         const embedUrl = getYouTubeEmbedUrl(videoUrl);
         mediaTag = `<iframe src="${embedUrl}" allowfullscreen></iframe>`;
       } else {
-        const autoplayAttr = b.autoplay ? 'autoplay loop muted playsinline' : 'controls';
-        mediaTag = `<video src="${esc(videoUrl)}" ${autoplayAttr}></video>`;
+        mediaTag = `<video src="${esc(videoUrl)}" autoplay loop muted playsinline></video>`;
       }
-      innerHtml = `
-        <div class="block-video">
-          ${mediaTag}
-        </div>
-      `;
+      html = `<div class="block-video">${mediaTag}</div>`;
+    }
+    else if (b.type === 'divider') {
+      const styleClass = 'style-' + (b.style || 'line');
+      html = `<div class="block-divider ${styleClass}"><hr></div>`;
+    }
+    else if (b.type === 'icons') {
+      const iconsList = b.icons || [
+        { name: 'Instagram', url: '#' },
+        { name: 'GitHub', url: '#' },
+        { name: 'Website', url: '#' }
+      ];
+      const iconsHtml = iconsList.map(ic => `
+        <a href="${esc(ic.url)}" class="profile-socials" onclick="event.preventDefault()" style="display:inline-flex; padding:6px 14px; background:#f1f5f9; border-radius:999px; text-decoration:none; font-size:12px; font-weight:600; color:#334155;">
+          ${esc(ic.name)}
+        </a>
+      `).join('');
+      html = `<div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:${b.align || 'center'}; width:100%;">${iconsHtml}</div>`;
     }
 
-    // Owner in-canvas quick tools
-    if (isOwner) {
-      innerHtml += `
-        <div class="canvas-block-actions">
-          <button onclick="moveBlock(${index}, -1)" title="Move Up">▲</button>
-          <button onclick="moveBlock(${index}, 1)" title="Move Down">▼</button>
-          <button onclick="openBlockSettings('${b.id}')" title="Edit">⚙</button>
-          <button onclick="removeBlock('${b.id}')" title="Delete" style="color:var(--danger)">✕</button>
-        </div>
-      `;
-    }
-
-    blockEl.innerHTML = innerHtml;
-    canvas.appendChild(blockEl);
+    blockEl.innerHTML = html;
+    card.appendChild(blockEl);
   });
 }
 
-function getYouTubeEmbedUrl(url) {
-  let videoId = '';
-  if (url.includes('youtu.be/')) {
-    videoId = url.split('youtu.be/')[1].split('?')[0];
-  } else if (url.includes('watch?v=')) {
-    videoId = url.split('watch?v=')[1].split('&')[0];
-  }
-  return videoId ? 'https://www.youtube.com/embed/' + videoId : url;
+// ===================== ELEMENT INTERACTION & SELECTION =====================
+
+function selectBlock(id) {
+  selectedBlockId = id;
+  renderCarrdCard();
+  openBlockDrawer(id);
 }
 
-// ===================== SIDEBAR BLOCK MANAGEMENT =====================
+function handleCanvasClick(e) {
+  if (e.target.id === 'carrdCanvasWrapper' || e.target.id === 'carrdSiteCard') {
+    closeAddMenu();
+  }
+}
 
-function renderSidebarBlocksList() {
-  const container = document.getElementById('sidebarBlocksList');
-  const countEl = document.getElementById('blocksCount');
-  if (!container) return;
+function openBlockDrawer(id) {
+  const block = activeBlocks.find(b => b.id === id);
+  if (!block) return;
 
-  if (countEl) countEl.innerText = activeBlocks.length;
-  container.innerHTML = '';
+  closeDrawer(); // Close settings drawer if open
 
-  activeBlocks.forEach((b, index) => {
-    const item = document.createElement('div');
-    item.className = 'sidebar-block-item';
-    item.id = 'sidebar_item_' + b.id;
+  const drawer = document.getElementById('carrdPropDrawer');
+  const titleEl = document.getElementById('drawerTitle');
+  const bodyEl = document.getElementById('drawerBody');
 
-    let icon = '📄';
-    let title = 'Element';
-    if (b.type === 'image') { icon = '🖼️'; title = 'Image (' + (b.size || 'medium') + ')'; }
-    else if (b.type === 'text') { icon = '✍️'; title = 'Text (' + (b.style || 'body') + ')'; }
-    else if (b.type === 'buttons') { icon = '🔘'; title = 'Buttons (' + (b.buttons ? b.buttons.length : 0) + ')'; }
-    else if (b.type === 'divider') { icon = '➖'; title = 'Divider (' + (b.style || 'line') + ')'; }
-    else if (b.type === 'video') { icon = '📹'; title = 'Video Embed'; }
+  let typeLabel = block.type.toUpperCase();
+  titleEl.innerHTML = `<span style="color:#60a5fa;">#</span> ${typeLabel}`;
+  bodyEl.innerHTML = getDrawerFormHtml(block);
 
-    item.innerHTML = `
-      <div class="sidebar-block-header" onclick="toggleBlockSettings('${b.id}')">
-        <div class="sidebar-block-title">${icon} ${title}</div>
-        <div class="sidebar-block-controls" onclick="event.stopPropagation()">
-          <button onclick="moveBlock(${index}, -1)" title="Move Up">▲</button>
-          <button onclick="moveBlock(${index}, 1)" title="Move Down">▼</button>
-          <button class="btn-del" onclick="removeBlock('${b.id}')" title="Delete">✕</button>
+  drawer.classList.add('open');
+}
+
+function closeDrawer() {
+  document.getElementById('carrdPropDrawer').classList.remove('open');
+  document.getElementById('carrdPageDrawer').classList.remove('open');
+  selectedBlockId = null;
+  renderCarrdCard();
+}
+
+function getDrawerFormHtml(b) {
+  if (b.type === 'text') {
+    return `
+      <div class="carrd-field">
+        <label>Text Content</label>
+        <textarea class="carrd-textarea" rows="4" placeholder="Enter text..." oninput="updateActiveBlockProp('content', this.value)">${esc(b.content || '')}</textarea>
+      </div>
+      <div class="carrd-field">
+        <label>Type / Style</label>
+        <select class="carrd-select" onchange="updateActiveBlockProp('style', this.value)">
+          <option value="h1" ${b.style==='h1'?'selected':''}>Heading 1 (Main Title)</option>
+          <option value="h2" ${b.style==='h2'?'selected':''}>Heading 2 (Subtitle)</option>
+          <option value="h3" ${b.style==='h3'?'selected':''}>Heading 3 (Section)</option>
+          <option value="body" ${b.style==='body'?'selected':''}>Paragraph (Body)</option>
+          <option value="quote" ${b.style==='quote'?'selected':''}>Quote</option>
+        </select>
+      </div>
+      <div class="carrd-field">
+        <label>Alignment</label>
+        <div class="carrd-segmented-control">
+          <button class="${b.align==='left'||!b.align?'active':''}" onclick="updateActiveBlockProp('align', 'left')">Left</button>
+          <button class="${b.align==='center'?'active':''}" onclick="updateActiveBlockProp('align', 'center')">Center</button>
+          <button class="${b.align==='right'?'active':''}" onclick="updateActiveBlockProp('align', 'right')">Right</button>
         </div>
       </div>
-      <div class="sidebar-block-body">
-        ${renderBlockEditorFields(b, index)}
+      <div class="carrd-field">
+        <label>Custom Text Color</label>
+        <input type="color" class="carrd-input" value="${b.color || '#09090b'}" onchange="updateActiveBlockProp('color', this.value)" style="height:38px; cursor:pointer;">
       </div>
     `;
-
-    container.appendChild(item);
-  });
-}
-
-function renderBlockEditorFields(b, index) {
-  if (b.type === 'image') {
+  }
+  else if (b.type === 'image') {
     return `
-      <div class="editor-row">
-        <label>Upload Image</label>
-        <input type="file" accept="image/*" class="editor-input" onchange="handleBlockImageUpload(event, '${b.id}')">
+      <div class="carrd-field">
+        <label>Upload Image File</label>
+        <input type="file" accept="image/*" class="carrd-input" onchange="handleImageFileUpload(event)">
       </div>
-      <div class="editor-row">
-        <label>Or Image URL</label>
-        <input type="url" class="editor-input" value="${esc(b.url || '')}" placeholder="https://" oninput="updateBlockProp('${b.id}', 'url', this.value)">
+      <div class="carrd-field">
+        <label>Or Image Link (URL)</label>
+        <input type="url" class="carrd-input" value="${esc(b.url || '')}" placeholder="https://..." oninput="updateActiveBlockProp('url', this.value)">
       </div>
-      <div class="editor-row">
+      <div class="carrd-field">
         <label>Size</label>
-        <select class="editor-select" onchange="updateBlockProp('${b.id}', 'size', this.value)">
+        <select class="carrd-select" onchange="updateActiveBlockProp('size', this.value)">
           <option value="full" ${b.size==='full'?'selected':''}>Full Width (100%)</option>
           <option value="large" ${b.size==='large'?'selected':''}>Large (75%)</option>
           <option value="medium" ${b.size==='medium'?'selected':''}>Medium (50%)</option>
@@ -372,306 +384,320 @@ function renderBlockEditorFields(b, index) {
           <option value="avatar" ${b.size==='avatar'?'selected':''}>Avatar Circle (120px)</option>
         </select>
       </div>
-      <div class="editor-row">
-        <label>Corner Radius</label>
-        <select class="editor-select" onchange="updateBlockProp('${b.id}', 'radius', this.value)">
+      <div class="carrd-field">
+        <label>Corner Shape</label>
+        <select class="carrd-select" onchange="updateActiveBlockProp('radius', this.value)">
           <option value="rounded" ${b.radius==='rounded'?'selected':''}>Rounded Corners</option>
           <option value="none" ${b.radius==='none'?'selected':''}>Square (0)</option>
-          <option value="circle" ${b.radius==='circle'?'selected':''}>Circle (Pill)</option>
+          <option value="circle" ${b.radius==='circle'?'selected':''}>Circle / Pill</option>
         </select>
       </div>
-      <div class="editor-row">
+      <div class="carrd-field">
         <label>Alignment</label>
-        <div class="editor-segmented">
-          <button class="${b.align==='left'?'active':''}" onclick="updateBlockProp('${b.id}', 'align', 'left')">Left</button>
-          <button class="${b.align==='center'||!b.align?'active':''}" onclick="updateBlockProp('${b.id}', 'align', 'center')">Center</button>
-          <button class="${b.align==='right'?'active':''}" onclick="updateBlockProp('${b.id}', 'align', 'right')">Right</button>
+        <div class="carrd-segmented-control">
+          <button class="${b.align==='left'?'active':''}" onclick="updateActiveBlockProp('align', 'left')">Left</button>
+          <button class="${b.align==='center'||!b.align?'active':''}" onclick="updateActiveBlockProp('align', 'center')">Center</button>
+          <button class="${b.align==='right'?'active':''}" onclick="updateActiveBlockProp('align', 'right')">Right</button>
         </div>
       </div>
-      <div class="editor-row">
+      <div class="carrd-field">
         <label>Click URL (Optional)</label>
-        <input type="url" class="editor-input" value="${esc(b.link || '')}" placeholder="https://" oninput="updateBlockProp('${b.id}', 'link', this.value)">
-      </div>
-      <div class="editor-row">
-        <label>Caption (Optional)</label>
-        <input type="text" class="editor-input" value="${esc(b.caption || '')}" placeholder="Photo caption..." oninput="updateBlockProp('${b.id}', 'caption', this.value)">
-      </div>
-    `;
-  }
-  else if (b.type === 'text') {
-    return `
-      <div class="editor-row">
-        <label>Text Content</label>
-        <textarea class="editor-input" rows="3" oninput="updateBlockProp('${b.id}', 'content', this.value)">${esc(b.content || '')}</textarea>
-      </div>
-      <div class="editor-row">
-        <label>Style Type</label>
-        <select class="editor-select" onchange="updateBlockProp('${b.id}', 'style', this.value)">
-          <option value="h1" ${b.style==='h1'?'selected':''}>Main Heading (H1)</option>
-          <option value="h2" ${b.style==='h2'?'selected':''}>Subheading (H2)</option>
-          <option value="h3" ${b.style==='h3'?'selected':''}>Section Title (H3)</option>
-          <option value="body" ${b.style==='body'?'selected':''}>Body Paragraph</option>
-          <option value="quote" ${b.style==='quote'?'selected':''}>Quote</option>
-        </select>
-      </div>
-      <div class="editor-row">
-        <label>Alignment</label>
-        <div class="editor-segmented">
-          <button class="${b.align==='left'?'active':''}" onclick="updateBlockProp('${b.id}', 'align', 'left')">Left</button>
-          <button class="${b.align==='center'||!b.align?'active':''}" onclick="updateBlockProp('${b.id}', 'align', 'center')">Center</button>
-          <button class="${b.align==='right'?'active':''}" onclick="updateBlockProp('${b.id}', 'align', 'right')">Right</button>
-        </div>
-      </div>
-      <div class="editor-row">
-        <label>Custom Color (Optional)</label>
-        <input type="color" class="editor-input" value="${b.color || '#ffffff'}" onchange="updateBlockProp('${b.id}', 'color', this.value)">
+        <input type="url" class="carrd-input" value="${esc(b.link || '')}" placeholder="https://..." oninput="updateActiveBlockProp('link', this.value)">
       </div>
     `;
   }
   else if (b.type === 'buttons') {
     const btns = b.buttons || [];
-    let btnsEditorHtml = btns.map((btn, bIdx) => `
-      <div style="background:var(--bg-card); padding:8px; border-radius:4px; margin-bottom:6px; position:relative;">
-        <button style="position:absolute; top:4px; right:4px; background:none; border:none; color:var(--danger); cursor:pointer;" onclick="removeButtonFromBlock('${b.id}', ${bIdx})">✕</button>
-        <input type="text" class="editor-input" placeholder="Title" value="${esc(btn.title)}" oninput="updateButtonProp('${b.id}', ${bIdx}, 'title', this.value)" style="margin-bottom:4px;">
-        <input type="url" class="editor-input" placeholder="https://" value="${esc(btn.url)}" oninput="updateButtonProp('${b.id}', ${bIdx}, 'url', this.value)" style="margin-bottom:4px;">
-        <select class="editor-select" onchange="updateButtonProp('${b.id}', ${bIdx}, 'style', this.value)">
+    const btnsHtml = btns.map((btn, idx) => `
+      <div style="background:#141722; padding:10px; border-radius:6px; margin-bottom:8px; border:1px solid rgba(255,255,255,0.06); position:relative;">
+        <button style="position:absolute; top:6px; right:6px; background:none; border:none; color:#ef4444; cursor:pointer;" onclick="removeButtonFromActiveBlock(${idx})">✕</button>
+        <input type="text" class="carrd-input" placeholder="Button Title" value="${esc(btn.title)}" oninput="updateButtonInActiveBlock(${idx}, 'title', this.value)" style="margin-bottom:6px;">
+        <input type="url" class="carrd-input" placeholder="https://" value="${esc(btn.url)}" oninput="updateButtonInActiveBlock(${idx}, 'url', this.value)" style="margin-bottom:6px;">
+        <select class="carrd-select" onchange="updateButtonInActiveBlock(${idx}, 'style', this.value)">
           <option value="solid" ${btn.style==='solid'?'selected':''}>Solid Brand</option>
           <option value="outline" ${btn.style==='outline'?'selected':''}>Outline</option>
-          <option value="ghost" ${btn.style==='ghost'?'selected':''}>Subtle Ghost</option>
+          <option value="ghost" ${btn.style==='ghost'?'selected':''}>Ghost</option>
         </select>
       </div>
     `).join('');
 
     return `
-      <div class="editor-row">
-        <label>Buttons List</label>
-        ${btnsEditorHtml}
-        <button class="btn btn-ghost" style="width:100%; font-size:12px; padding:6px;" onclick="addButtonToBlock('${b.id}')">+ Add Button</button>
+      <div class="carrd-field">
+        <label>Buttons</label>
+        ${btnsHtml}
+        <button class="btn btn-ghost" style="width:100%; font-size:12px; padding:6px; border:1px dashed rgba(255,255,255,0.15);" onclick="addButtonToActiveBlock()">+ Add Another Button</button>
       </div>
-      <div class="editor-row">
+      <div class="carrd-field">
         <label>Layout</label>
-        <select class="editor-select" onchange="updateBlockProp('${b.id}', 'layout', this.value)">
-          <option value="column" ${b.layout==='column'?'selected':''}>Vertical Stack (Column)</option>
-          <option value="row" ${b.layout==='row'?'selected':''}>Horizontal (Row)</option>
-        </select>
-      </div>
-    `;
-  }
-  else if (b.type === 'divider') {
-    return `
-      <div class="editor-row">
-        <label>Divider Style</label>
-        <select class="editor-select" onchange="updateBlockProp('${b.id}', 'style', this.value)">
-          <option value="line" ${b.style==='line'?'selected':''}>Solid Line</option>
-          <option value="dashed" ${b.style==='dashed'?'selected':''}>Dashed Line</option>
-          <option value="dots" ${b.style==='dots'?'selected':''}>Dotted Center</option>
-          <option value="space" ${b.style==='space'?'selected':''}>Blank Space Gap</option>
+        <select class="carrd-select" onchange="updateActiveBlockProp('layout', this.value)">
+          <option value="column" ${b.layout==='column'?'selected':''}>Vertical Stack</option>
+          <option value="row" ${b.layout==='row'?'selected':''}>Horizontal Row</option>
         </select>
       </div>
     `;
   }
   else if (b.type === 'video') {
     return `
-      <div class="editor-row">
-        <label>Video URL (MP4 or YouTube)</label>
-        <input type="url" class="editor-input" value="${esc(b.url || '')}" placeholder="https://..." oninput="updateBlockProp('${b.id}', 'url', this.value)">
+      <div class="carrd-field">
+        <label>Video URL (YouTube or MP4)</label>
+        <input type="url" class="carrd-input" value="${esc(b.url || '')}" placeholder="https://..." oninput="updateActiveBlockProp('url', this.value)">
       </div>
-      <div class="editor-row">
-        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-          <input type="checkbox" ${b.autoplay?'checked':''} onchange="updateBlockProp('${b.id}', 'autoplay', this.checked)">
-          <span>Autoplay Looping (GIF-like)</span>
-        </label>
+    `;
+  }
+  else if (b.type === 'divider') {
+    return `
+      <div class="carrd-field">
+        <label>Divider Style</label>
+        <select class="carrd-select" onchange="updateActiveBlockProp('style', this.value)">
+          <option value="line" ${b.style==='line'?'selected':''}>Solid Line</option>
+          <option value="dashed" ${b.style==='dashed'?'selected':''}>Dashed</option>
+          <option value="dots" ${b.style==='dots'?'selected':''}>Dots Center</option>
+          <option value="space" ${b.style==='space'?'selected':''}>Blank Space Gap</option>
+        </select>
+      </div>
+    `;
+  }
+  else if (b.type === 'gallery') {
+    return `
+      <div class="carrd-field">
+        <label>Columns</label>
+        <select class="carrd-select" onchange="updateActiveBlockProp('cols', parseInt(this.value))">
+          <option value="2" ${b.cols===2?'selected':''}>2 Columns</option>
+          <option value="3" ${b.cols===3||!b.cols?'selected':''}>3 Columns</option>
+          <option value="4" ${b.cols===4?'selected':''}>4 Columns</option>
+        </select>
+      </div>
+    `;
+  }
+  else if (b.type === 'icons') {
+    return `
+      <div class="carrd-field">
+        <label>Social Icons</label>
+        <p style="font-size:12px; color:#94a3b8; margin:0;">Displays your connected social profiles.</p>
       </div>
     `;
   }
   return '';
 }
 
-// ===================== BLOCK ACTIONS =====================
-
-function addNewBlock(type) {
-  const newB = {
-    id: genId('block'),
-    type: type
-  };
-
-  if (type === 'image') {
-    newB.url = 'logo.png';
-    newB.size = 'medium';
-    newB.radius = 'rounded';
-    newB.align = 'center';
-  } else if (type === 'text') {
-    newB.content = 'Write your text here...';
-    newB.style = 'body';
-    newB.align = 'center';
-  } else if (type === 'buttons') {
-    newB.buttons = [{ title: 'Visit Link', url: 'https://', style: 'solid' }];
-    newB.layout = 'column';
-    newB.align = 'center';
-  } else if (type === 'divider') {
-    newB.style = 'line';
-  } else if (type === 'video') {
-    newB.url = 'promo-video.mp4';
-    newB.autoplay = true;
-  }
-
-  activeBlocks.push(newB);
-  renderCanvasBlocks();
-  renderSidebarBlocksList();
-  openBlockSettings(newB.id);
-}
-
-function removeBlock(id) {
-  activeBlocks = activeBlocks.filter(b => b.id !== id);
-  renderCanvasBlocks();
-  renderSidebarBlocksList();
-}
-
-function moveBlock(index, direction) {
-  const targetIndex = index + direction;
-  if (targetIndex < 0 || targetIndex >= activeBlocks.length) return;
-  const temp = activeBlocks[index];
-  activeBlocks[index] = activeBlocks[targetIndex];
-  activeBlocks[targetIndex] = temp;
-  renderCanvasBlocks();
-  renderSidebarBlocksList();
-}
-
-function updateBlockProp(id, prop, value) {
-  const block = activeBlocks.find(b => b.id === id);
+function updateActiveBlockProp(prop, value) {
+  if (!selectedBlockId) return;
+  const block = activeBlocks.find(b => b.id === selectedBlockId);
   if (!block) return;
   block[prop] = value;
-  renderCanvasBlocks();
+  renderCarrdCard();
 }
 
-function handleBlockImageUpload(event, blockId) {
-  const file = event.target.files[0];
-  if (!file) return;
+function handleImageFileUpload(e) {
+  const file = e.target.files[0];
+  if (!file || !selectedBlockId) return;
   const reader = new FileReader();
-  reader.onload = (e) => {
-    updateBlockProp(blockId, 'url', e.target.result);
-    renderSidebarBlocksList();
-    openBlockSettings(blockId);
+  reader.onload = (event) => {
+    updateActiveBlockProp('url', event.target.result);
+    openBlockDrawer(selectedBlockId); // refresh preview in drawer
   };
   reader.readAsDataURL(file);
 }
 
-function addButtonToBlock(blockId) {
-  const block = activeBlocks.find(b => b.id === blockId);
+function addButtonToActiveBlock() {
+  if (!selectedBlockId) return;
+  const block = activeBlocks.find(b => b.id === selectedBlockId);
   if (!block) return;
   if (!block.buttons) block.buttons = [];
   block.buttons.push({ title: 'New Button', url: 'https://', style: 'solid' });
-  renderCanvasBlocks();
-  renderSidebarBlocksList();
-  openBlockSettings(blockId);
+  renderCarrdCard();
+  openBlockDrawer(selectedBlockId);
 }
 
-function removeButtonFromBlock(blockId, btnIndex) {
-  const block = activeBlocks.find(b => b.id === blockId);
+function removeButtonFromActiveBlock(idx) {
+  if (!selectedBlockId) return;
+  const block = activeBlocks.find(b => b.id === selectedBlockId);
   if (!block || !block.buttons) return;
-  block.buttons.splice(btnIndex, 1);
-  renderCanvasBlocks();
-  renderSidebarBlocksList();
-  openBlockSettings(blockId);
+  block.buttons.splice(idx, 1);
+  renderCarrdCard();
+  openBlockDrawer(selectedBlockId);
 }
 
-function updateButtonProp(blockId, btnIndex, prop, value) {
-  const block = activeBlocks.find(b => b.id === blockId);
-  if (!block || !block.buttons || !block.buttons[btnIndex]) return;
-  block.buttons[btnIndex][prop] = value;
-  renderCanvasBlocks();
+function updateButtonInActiveBlock(idx, prop, value) {
+  if (!selectedBlockId) return;
+  const block = activeBlocks.find(b => b.id === selectedBlockId);
+  if (!block || !block.buttons || !block.buttons[idx]) return;
+  block.buttons[idx][prop] = value;
+  renderCarrdCard();
 }
 
-function toggleBlockSettings(id) {
-  const item = document.getElementById('sidebar_item_' + id);
-  if (!item) return;
-  item.classList.toggle('open');
+function moveActiveBlock(direction) {
+  if (!selectedBlockId) return;
+  const idx = activeBlocks.findIndex(b => b.id === selectedBlockId);
+  if (idx === -1) return;
+  const targetIdx = idx + direction;
+  if (targetIdx < 0 || targetIdx >= activeBlocks.length) return;
+
+  const temp = activeBlocks[idx];
+  activeBlocks[idx] = activeBlocks[targetIdx];
+  activeBlocks[targetIdx] = temp;
+
+  pushHistory();
+  renderCarrdCard();
 }
 
-function openBlockSettings(id) {
-  const item = document.getElementById('sidebar_item_' + id);
-  if (!item) return;
-  item.classList.add('open');
-  item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+function deleteActiveBlock() {
+  if (!selectedBlockId) return;
+  activeBlocks = activeBlocks.filter(b => b.id !== selectedBlockId);
+  selectedBlockId = null;
+  pushHistory();
+  closeDrawer();
+  renderCarrdCard();
 }
 
-function resetToDefaultBlocks() {
-  if (confirm('Reset your layout to the standard starter profile?')) {
-    activeBlocks = createStarterBlocks(profileData);
-    renderCanvasBlocks();
-    renderSidebarBlocksList();
+// ===================== ADD ELEMENTS MENU =====================
+
+function toggleAddMenu(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('carrdAddMenu');
+  menu.classList.toggle('show');
+}
+
+function closeAddMenu() {
+  const menu = document.getElementById('carrdAddMenu');
+  if (menu) menu.classList.remove('show');
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#carrdToolbar') && !e.target.closest('#carrdAddMenu')) {
+    closeAddMenu();
   }
-}
+});
 
-// ===================== PAGE SETTINGS & PREVIEW =====================
+function insertNewElement(type) {
+  closeAddMenu();
 
-function initSidebarControls() {
-  if (pageSettings.canvasWidth) {
-    const sel = document.getElementById('settingCanvasWidth');
-    if (sel) sel.value = pageSettings.canvasWidth;
+  const newId = genId(type.substring(0, 3));
+  let newBlock = { id: newId, type: type };
+
+  if (type === 'text') {
+    newBlock.content = 'New Heading or Text';
+    newBlock.style = 'h2';
+    newBlock.align = 'left';
+  } else if (type === 'image') {
+    newBlock.url = 'logo.png';
+    newBlock.size = 'medium';
+    newBlock.radius = 'rounded';
+    newBlock.align = 'center';
+  } else if (type === 'buttons') {
+    newBlock.buttons = [{ title: 'Get Started', url: 'https://', style: 'solid' }];
+    newBlock.layout = 'column';
+    newBlock.align = 'center';
+  } else if (type === 'gallery') {
+    newBlock.cols = 3;
+    newBlock.images = ['logo.png', 'logo.png', 'logo.png'];
+  } else if (type === 'video') {
+    newBlock.url = 'promo-video.mp4';
+  } else if (type === 'divider') {
+    newBlock.style = 'line';
+  } else if (type === 'icons') {
+    newBlock.align = 'center';
   }
-  if (pageSettings.bg) document.getElementById('colorBg').value = pageSettings.bg;
-  if (pageSettings.card) document.getElementById('colorCard').value = pageSettings.card;
-  if (pageSettings.primary) document.getElementById('colorPrimary').value = pageSettings.primary;
-  if (pageSettings.text) document.getElementById('colorText').value = pageSettings.text;
-  if (pageSettings.font) document.getElementById('fontSelector').value = pageSettings.font;
+
+  activeBlocks.push(newBlock);
+  pushHistory();
+  renderCarrdCard();
+  selectBlock(newId);
 }
 
-function updatePageStylePreview() {
-  pageSettings.canvasWidth = document.getElementById('settingCanvasWidth').value;
-  pageSettings.bg = document.getElementById('colorBg').value;
-  pageSettings.card = document.getElementById('colorCard').value;
-  pageSettings.primary = document.getElementById('colorPrimary').value;
-  pageSettings.text = document.getElementById('colorText').value;
-  pageSettings.font = document.getElementById('fontSelector').value;
+// ===================== PAGE SETTINGS =====================
 
-  applyPageStyles(pageSettings);
+function openPageSettingsDrawer() {
+  closeDrawer();
+  document.getElementById('carrdPageDrawer').classList.add('open');
 }
 
-function applyPageStyles(settings) {
+function initPageSettingsInputs() {
+  if (pageSettings.siteTitle) document.getElementById('settingSiteTitle').value = pageSettings.siteTitle;
+  if (pageSettings.cardWidth) document.getElementById('settingCardWidth').value = pageSettings.cardWidth;
+  if (pageSettings.cardRadius) document.getElementById('settingCardRadius').value = pageSettings.cardRadius;
+  if (pageSettings.font) document.getElementById('settingFont').value = pageSettings.font;
+  if (pageSettings.bg) document.getElementById('settingBgColor').value = pageSettings.bg;
+  if (pageSettings.cardBg) document.getElementById('settingCardBgColor').value = pageSettings.cardBg;
+  if (pageSettings.primary) document.getElementById('settingPrimaryColor').value = pageSettings.primary;
+}
+
+function updatePageSetting(key, value) {
+  pageSettings[key] = value;
+  applyPageSettings(pageSettings);
+}
+
+function applyPageSettings(s) {
   const root = document.documentElement;
-  if (settings.canvasWidth) root.style.setProperty('--canvas-max-width', settings.canvasWidth);
-  if (settings.bg) root.style.setProperty('--bg-primary', settings.bg);
-  if (settings.card) root.style.setProperty('--bg-card', settings.card);
-  if (settings.primary) root.style.setProperty('--primary', settings.primary);
-  if (settings.text) root.style.setProperty('--text-primary', settings.text);
-  if (settings.font) root.style.setProperty('font-family', settings.font);
+  if (s.cardWidth) root.style.setProperty('--card-max-width', s.cardWidth);
+  if (s.cardRadius) root.style.setProperty('--card-radius', s.cardRadius);
+  if (s.bg) root.style.setProperty('--carrd-bg', s.bg);
+  if (s.cardBg) root.style.setProperty('--card-bg', s.cardBg);
+  if (s.primary) root.style.setProperty('--primary', s.primary);
+  if (s.font) root.style.setProperty('font-family', s.font);
 }
 
-function toggleSidebar() {
-  const sb = document.getElementById('builderSidebar');
-  if (!sb) return;
-  sb.classList.toggle('active');
-  document.body.classList.toggle('sidebar-open');
+function resetToCarrdStarter() {
+  if (confirm('Reset your canvas to the blank Carrd starter layout?')) {
+    activeBlocks = [
+      {
+        id: genId('txt'),
+        type: 'text',
+        content: 'My Untitled Site',
+        style: 'h1',
+        align: 'left'
+      },
+      {
+        id: genId('txt'),
+        type: 'text',
+        content: "There's nothing here yet (well, except for this message), but clicking on the \"+\" button in the menu above should change that. Have fun! :)",
+        style: 'body',
+        align: 'left'
+      }
+    ];
+    pushHistory();
+    renderCarrdCard();
+    closeDrawer();
+  }
 }
 
-function saveCarrdDesign() {
-  if (!isOwner) return;
+// ===================== MOBILE PREVIEW & PUBLISH =====================
+
+function toggleMobilePreview() {
+  const btn = document.getElementById('btnMobilePreview');
+  document.body.classList.toggle('mobile-preview-mode');
+  btn.classList.toggle('active');
+  const isMobile = document.body.classList.contains('mobile-preview-mode');
+  showToast(isMobile ? 'Mobile Preview Mode (375px)' : 'Desktop View', 'info');
+}
+
+function saveAndPublish() {
+  if (!userRef) return;
 
   userRef.update({
     customBlocks: activeBlocks,
     pageSettings: pageSettings
   }).then(() => {
-    if (window.showToast) showToast('Design saved & published successfully!', 'success');
+    const portfolioUrl = window.location.origin + '/portfolio.html?id=' + targetUid;
+    navigator.clipboard.writeText(portfolioUrl).then(() => {
+      showToast('Published! Public portfolio link copied to clipboard 🔗', 'success');
+    }).catch(() => {
+      showToast('Published successfully!', 'success');
+    });
   }).catch(err => {
-    if (window.showToast) showToast('Error saving: ' + err.message, 'error');
+    showToast('Error saving: ' + err.message, 'error');
   });
 }
 
-function sharePortfolio() {
-  const url = window.location.origin + '/portfolio.html?id=' + targetUid;
-  navigator.clipboard.writeText(url).then(() => {
-    if (window.showToast) showToast('Portfolio link copied!', 'success');
-  });
-}
-
-function logoutUser() {
-  firebase.auth().signOut().then(() => window.location.href = 'auth.html');
+function getYouTubeEmbedUrl(url) {
+  let videoId = '';
+  if (url.includes('youtu.be/')) videoId = url.split('youtu.be/')[1].split('?')[0];
+  else if (url.includes('watch?v=')) videoId = url.split('watch?v=')[1].split('&')[0];
+  return videoId ? 'https://www.youtube.com/embed/' + videoId : url;
 }
 
 function genId(prefix) {
-  return prefix + '_' + Math.random().toString(36).substr(2, 9);
+  return prefix + '_' + Math.random().toString(36).substr(2, 7);
 }
 
 function esc(str) {
@@ -681,7 +707,6 @@ function esc(str) {
   return div.innerHTML;
 }
 
-function showGuestState() {
-  const canvas = document.getElementById('modularCanvas');
-  if (canvas) canvas.innerHTML = '<div style="text-align:center; padding:60px;"><h3>Guest Mode</h3><p>Please log in to design your profile.</p></div>';
+function renderGuestMode() {
+  document.getElementById('carrdSiteCard').innerHTML = '<div style="text-align:center; padding:60px;"><h3>Guest Mode</h3><p>Please log in to edit and publish your site.</p></div>';
 }
