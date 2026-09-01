@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Carrd Builder - ESTL</title>
   <link rel="stylesheet" href="style.css?v=6">
-  <link rel="stylesheet" href="profile.css?v=8">
+  <link rel="stylesheet" href="profile.css?v=9">
   <link rel="icon" type="image/png" href="logo.png">
 </head>
 <body class="carrd-builder-body">
@@ -17,6 +17,10 @@
     <button class="carrd-tool-btn" id="btnAddElement" onclick="toggleAddMenu(event)" data-tooltip="Add Element">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
     </button>
+    <button class="carrd-tool-btn" onclick="openTemplatesModal()" data-tooltip="Templates Preset">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+    </button>
+    <div class="carrd-tool-divider"></div>
     <button class="carrd-tool-btn" onclick="undoAction()" data-tooltip="Undo">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"></path></svg>
     </button>
@@ -49,6 +53,24 @@
     </button>
     <button class="carrd-menu-item" onclick="insertNewElement('buttons')">
       <span class="icon">🔘</span> Buttons
+    </button>
+    <button class="carrd-menu-item" onclick="insertNewElement('status')">
+      <span class="icon">🟢</span> Status Badge
+    </button>
+    <button class="carrd-menu-item" onclick="insertNewElement('skills')">
+      <span class="icon">📊</span> Skills Progress
+    </button>
+    <button class="carrd-menu-item" onclick="insertNewElement('code')">
+      <span class="icon">💻</span> Code Snippet
+    </button>
+    <button class="carrd-menu-item" onclick="insertNewElement('contact')">
+      <span class="icon">💬</span> Contact Form
+    </button>
+    <button class="carrd-menu-item" onclick="insertNewElement('github')">
+      <span class="icon">📈</span> GitHub Stats
+    </button>
+    <button class="carrd-menu-item" onclick="insertNewElement('faq')">
+      <span class="icon">❓</span> FAQ Accordion
     </button>
     <button class="carrd-menu-item" onclick="insertNewElement('gallery')">
       <span class="icon">🗂️</span> Gallery
@@ -96,7 +118,7 @@
       <div class="carrd-field">
         <label>Container Width</label>
         <select class="carrd-select" id="settingCardWidth" onchange="updatePageSetting('cardWidth', this.value)">
-          <option value="560px">Narrow (560px)</option>
+          <option value="560px">Compact (560px)</option>
           <option value="680px" selected>Standard (680px)</option>
           <option value="840px">Wide (840px)</option>
           <option value="1000px">Full Screen (1000px)</option>
@@ -133,8 +155,37 @@
         <label>Primary Brand Color</label>
         <input type="color" class="carrd-input" id="settingPrimaryColor" onchange="updatePageSetting('primary', this.value)" style="height:40px; cursor:pointer;">
       </div>
-      <div class="carrd-field" style="margin-top:10px;">
-        <button class="btn btn-ghost" style="width:100%; border:1px solid rgba(255,255,255,0.1); font-size:12px;" onclick="resetToCarrdStarter()">↺ Reset to Blank Starter</button>
+    </div>
+  </div>
+
+  <!-- ===== TEMPLATES PRESET MODAL ===== -->
+  <div class="carrd-modal-backdrop" id="carrdTemplatesModal" onclick="closeTemplatesModal(event)">
+    <div class="carrd-modal" onclick="event.stopPropagation()">
+      <div class="carrd-modal-header">
+        <h3 style="margin:0; font-size:16px; font-weight:700;">Choose a Starter Template</h3>
+        <button style="background:none; border:none; color:#94a3b8; font-size:18px; cursor:pointer;" onclick="closeTemplatesModal()">✕</button>
+      </div>
+      <div class="carrd-modal-body">
+        <div class="template-card" onclick="applyStarterPreset('robotics')">
+          <div class="template-card-icon">🤖</div>
+          <div class="template-card-title">Robotics & Embedded Engineer</div>
+          <div class="template-card-desc">Status pill, Avatar, Code snippet, Skill bars, and project links.</div>
+        </div>
+        <div class="template-card" onclick="applyStarterPreset('minimal_bio')">
+          <div class="template-card-icon">🔗</div>
+          <div class="template-card-title">Minimalist Bio Links (Linktree)</div>
+          <div class="template-card-desc">Clean avatar, bold headline, custom action buttons and socials.</div>
+        </div>
+        <div class="template-card" onclick="applyStarterPreset('corporate')">
+          <div class="template-card-icon">🏢</div>
+          <div class="template-card-title">Corporate Tech Consultant</div>
+          <div class="template-card-desc">Professional bio, skills overview, FAQ accordion and contact form.</div>
+        </div>
+        <div class="template-card" onclick="applyStarterPreset('developer')">
+          <div class="template-card-icon">💻</div>
+          <div class="template-card-title">Fullstack & Open Source Maker</div>
+          <div class="template-card-desc">GitHub live stats, code snippet, video showcase, and direct message.</div>
+        </div>
       </div>
     </div>
   </div>
@@ -151,6 +202,6 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="auth-guard.js"></script>
-  <script src="profile.js?v=9"></script>
+  <script src="profile.js?v=11"></script>
 </body>
 </html>

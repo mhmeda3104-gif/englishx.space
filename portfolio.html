@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Portfolio</title>
+  <title>Portfolio - ESTL</title>
   <link rel="stylesheet" href="style.css?v=6">
-  <link rel="stylesheet" href="profile.css?v=8">
+  <link rel="stylesheet" href="profile.css?v=9">
   <link rel="icon" type="image/png" href="logo.png">
   <style>
     body { 
@@ -71,18 +71,20 @@
     };
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 
+    let portfolioUid = null;
+
     document.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
-      const uidQuery = urlParams.get('id') || urlParams.get('user');
+      portfolioUid = urlParams.get('id') || urlParams.get('user');
       
       const card = document.getElementById('carrdSiteCard');
 
-      if (!uidQuery) {
+      if (!portfolioUid) {
         card.innerHTML = '<div style="text-align:center; padding:40px; color:#94a3b8;"><h3>Invalid Link</h3><p>Please provide a valid user ID.</p></div>';
         return;
       }
 
-      firebase.database().ref('users/' + uidQuery).once('value').then(snapshot => {
+      firebase.database().ref('users/' + portfolioUid).once('value').then(snapshot => {
         try {
           if (snapshot.exists()) {
             const d = snapshot.val();
@@ -99,7 +101,6 @@
     });
 
     function renderPublicPortfolio(d) {
-      // Apply Page Settings
       const s = d.pageSettings || d.customStyle || {};
       const root = document.documentElement;
       if (s.cardWidth) root.style.setProperty('--card-max-width', s.cardWidth);
@@ -113,7 +114,6 @@
         document.title = s.siteTitle || (d.name + ' - Portfolio');
       }
 
-      // Render Blocks
       const card = document.getElementById('carrdSiteCard');
       card.innerHTML = '';
 
@@ -159,6 +159,81 @@
 
           html = '<div class="block-buttons ' + layoutClass + ' ' + alignClass + '">' + btnsHtml + '</div>';
         }
+        else if (b.type === 'status') {
+          const alignClass = 'align-' + (b.align || 'center');
+          const dotColor = b.dotColor || '#10b981';
+          html = '<div class="block-status-wrap ' + alignClass + '">' +
+                   '<div class="block-status-pill">' +
+                     '<span class="block-status-dot" style="background:' + dotColor + '; box-shadow:0 0 8px ' + dotColor + ';"></span>' +
+                     '<span>' + esc(b.text || 'Open for projects') + '</span>' +
+                   '</div>' +
+                 '</div>';
+        }
+        else if (b.type === 'skills') {
+          const items = b.items || [];
+          const itemsHtml = items.map(sk => 
+            '<div class="block-skill-item">' +
+              '<div class="block-skill-info">' +
+                '<span>' + esc(sk.name || 'Skill') + '</span>' +
+                '<span>' + (sk.percent || 80) + '%</span>' +
+              '</div>' +
+              '<div class="block-skill-track">' +
+                '<div class="block-skill-bar" style="width: ' + (sk.percent || 80) + '%;"></div>' +
+              '</div>' +
+            '</div>'
+          ).join('');
+          html = '<div class="block-skills-list">' + itemsHtml + '</div>';
+        }
+        else if (b.type === 'code') {
+          const lang = b.lang || 'cpp';
+          const code = b.code || '';
+          html = '<div class="block-code">' +
+                   '<div class="block-code-header">' +
+                     '<span class="block-code-lang">' + esc(lang) + '</span>' +
+                     '<button class="block-code-copy-btn" onclick="copyCodeSnippetPublic(this)">📋 Copy</button>' +
+                   '</div>' +
+                   '<pre><code>' + esc(code) + '</code></pre>' +
+                 '</div>';
+        }
+        else if (b.type === 'contact') {
+          html = '<div class="block-contact-form">' +
+                   '<h4 style="margin:0 0 4px; font-size:14px; font-weight:700;">' + esc(b.title || 'Send a Message') + '</h4>' +
+                   '<input type="text" id="contactName" placeholder="Your Name" required>' +
+                   '<input type="email" id="contactEmail" placeholder="Your Email" required>' +
+                   '<textarea rows="3" id="contactMessage" placeholder="Your message..." required></textarea>' +
+                   '<button class="block-contact-btn" onclick="submitPublicContactMessage()">' + esc(b.btnText || 'Send Message') + '</button>' +
+                 '</div>';
+        }
+        else if (b.type === 'github') {
+          const username = b.username || 'mhmeda3104-gif';
+          html = '<div class="block-github-card">' +
+                   '<div class="block-github-header">' +
+                     '<svg width="24" height="24" viewBox="0 0 24 24"><path fill="#fff" d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>' +
+                     '<div>' +
+                       '<a href="https://github.com/' + esc(username) + '" target="_blank" class="block-github-user">@' + esc(username) + '</a>' +
+                       '<div style="font-size:11px; color:#8b949e;">GitHub Developer Profile</div>' +
+                     '</div>' +
+                   '</div>' +
+                   '<div class="block-github-grid">' +
+                     '<div><div class="block-github-stat-num">24+</div><div class="block-github-stat-label">Repositories</div></div>' +
+                     '<div><div class="block-github-stat-num">120+</div><div class="block-github-stat-label">Contributions</div></div>' +
+                     '<div><div class="block-github-stat-num">5★</div><div class="block-github-stat-label">Stars</div></div>' +
+                   '</div>' +
+                 '</div>';
+        }
+        else if (b.type === 'faq') {
+          const items = b.items || [];
+          const faqHtml = items.map((item) => 
+            '<div class="block-faq-item" onclick="this.classList.toggle(\'open\')">' +
+              '<div class="block-faq-question">' +
+                '<span>' + esc(item.q) + '</span>' +
+                '<span style="font-size:12px;">▼</span>' +
+              '</div>' +
+              '<div class="block-faq-answer">' + esc(item.a) + '</div>' +
+            '</div>'
+          ).join('');
+          html = '<div class="block-faq-list">' + faqHtml + '</div>';
+        }
         else if (b.type === 'gallery') {
           const cols = b.cols || 3;
           const imgs = b.images || ['logo.png', 'logo.png', 'logo.png'];
@@ -176,7 +251,7 @@
             const embedUrl = getYouTubeEmbedUrl(videoUrl);
             mediaTag = '<iframe src="' + embedUrl + '" allowfullscreen></iframe>';
           } else {
-            mediaTag = '<video src="' + esc(videoUrl)" autoplay loop muted playsinline></video>';
+            mediaTag = '<video src="' + esc(videoUrl) + '" autoplay loop muted playsinline></video>';
           }
           html = '<div class="block-video">' + mediaTag + '</div>';
         }
@@ -224,6 +299,42 @@
         blocks.push({ type: 'buttons', buttons: linkBtns, layout: 'column', align: 'center' });
       }
       return blocks;
+    }
+
+    function copyCodeSnippetPublic(btn) {
+      const codeEl = btn.closest('.block-code').querySelector('code');
+      if (codeEl) {
+        navigator.clipboard.writeText(codeEl.innerText).then(() => {
+          btn.innerText = '✓ Copied';
+          setTimeout(() => btn.innerText = '📋 Copy', 2000);
+        });
+      }
+    }
+
+    function submitPublicContactMessage() {
+      if (!portfolioUid) return;
+      const name = document.getElementById('contactName').value.trim();
+      const email = document.getElementById('contactEmail').value.trim();
+      const msg = document.getElementById('contactMessage').value.trim();
+
+      if (!name || !email || !msg) {
+        alert('Please fill out all fields.');
+        return;
+      }
+
+      firebase.database().ref('users/' + portfolioUid + '/messages').push({
+        name,
+        email,
+        message: msg,
+        timestamp: Date.now()
+      }).then(() => {
+        alert('Thank you! Your message has been sent.');
+        document.getElementById('contactName').value = '';
+        document.getElementById('contactEmail').value = '';
+        document.getElementById('contactMessage').value = '';
+      }).catch(err => {
+        alert('Error sending message: ' + err.message);
+      });
     }
 
     function getYouTubeEmbedUrl(url) {

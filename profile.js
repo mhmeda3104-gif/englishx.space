@@ -1,4 +1,4 @@
-// profile.js - Exact Carrd.co Visual Builder Engine
+// profile.js - Advanced Carrd.co Visual Builder with Rich Portfolio Blocks & Presets
 
 const firebaseConfig = {
   apiKey: "AIzaSyBydQb6wDh4X7JA0JkcuhToJam66VD3bTM",
@@ -101,14 +101,12 @@ function loadCarrdProfileData() {
     const d = snapshot.val();
     profileData = d;
 
-    // Load customBlocks or migrate
     if (d.customBlocks && Array.isArray(d.customBlocks) && d.customBlocks.length > 0) {
       activeBlocks = d.customBlocks;
     } else {
       activeBlocks = createCarrdStarterBlocks(d);
     }
 
-    // Load page settings
     if (d.pageSettings) {
       pageSettings = { ...pageSettings, ...d.pageSettings };
     }
@@ -123,23 +121,30 @@ function loadCarrdProfileData() {
 }
 
 function createCarrdStarterBlocks(d) {
-  // If user has existing profile info, use it; otherwise provide Carrd default starter
   if (d.name || d.bio || d.photoURL) {
     const blocks = [];
-    if (d.photoURL) {
-      blocks.push({
-        id: genId('img'),
-        type: 'image',
-        url: d.photoURL,
-        size: 'avatar',
-        radius: 'circle',
-        align: 'center'
-      });
-    }
+    // 1. Live status pill
+    blocks.push({
+      id: genId('sts'),
+      type: 'status',
+      text: '🟢 Open to new robotics & software projects',
+      dotColor: '#10b981',
+      align: 'center'
+    });
+    // 2. Avatar
+    blocks.push({
+      id: genId('img'),
+      type: 'image',
+      url: d.photoURL || 'logo.png',
+      size: 'avatar',
+      radius: 'circle',
+      align: 'center'
+    });
+    // 3. Name & bio
     blocks.push({
       id: genId('txt'),
       type: 'text',
-      content: d.name || 'My Untitled Site',
+      content: d.name || 'Space Engineer',
       style: 'h1',
       align: 'center'
     });
@@ -152,11 +157,22 @@ function createCarrdStarterBlocks(d) {
         align: 'center'
       });
     }
+    // 4. Skills Bar
+    blocks.push({
+      id: genId('skl'),
+      type: 'skills',
+      items: [
+        { name: 'Embedded Systems & Arduino', percent: 90 },
+        { name: 'Python & Robotics Control', percent: 85 },
+        { name: 'PCB & Circuit Design', percent: 80 }
+      ]
+    });
+    // 5. Buttons
     const socialBtns = [];
     if (d.social) {
       if (d.social.github) socialBtns.push({ title: 'GitHub', url: d.social.github, style: 'outline' });
       if (d.social.instagram) socialBtns.push({ title: 'Instagram', url: d.social.instagram, style: 'outline' });
-      if (d.social.website) socialBtns.push({ title: 'Website', url: d.social.website, style: 'solid' });
+      if (d.social.website) socialBtns.push({ title: 'Portfolio Website', url: d.social.website, style: 'solid' });
     }
     if (socialBtns.length > 0) {
       blocks.push({
@@ -251,6 +267,101 @@ function renderCarrdCard() {
 
       html = `<div class="block-buttons ${layoutClass} ${alignClass}">${btnsHtml}</div>`;
     }
+    else if (b.type === 'status') {
+      const alignClass = 'align-' + (b.align || 'center');
+      const dotColor = b.dotColor || '#10b981';
+      html = `
+        <div class="block-status-wrap ${alignClass}">
+          <div class="block-status-pill">
+            <span class="block-status-dot" style="background:${dotColor}; box-shadow:0 0 8px ${dotColor};"></span>
+            <span>${esc(b.text || 'Open for projects')}</span>
+          </div>
+        </div>
+      `;
+    }
+    else if (b.type === 'skills') {
+      const items = b.items || [];
+      const itemsHtml = items.map(sk => `
+        <div class="block-skill-item">
+          <div class="block-skill-info">
+            <span>${esc(sk.name || 'Skill')}</span>
+            <span>${sk.percent || 80}%</span>
+          </div>
+          <div class="block-skill-track">
+            <div class="block-skill-bar" style="width: ${sk.percent || 80}%;"></div>
+          </div>
+        </div>
+      `).join('');
+      html = `<div class="block-skills-list">${itemsHtml}</div>`;
+    }
+    else if (b.type === 'code') {
+      const lang = b.lang || 'cpp';
+      const code = b.code || '// ESTL Robotics Code\nvoid setup() {\n  pinMode(LED_BUILTIN, OUTPUT);\n}\nvoid loop() {\n  digitalWrite(LED_BUILTIN, HIGH);\n}';
+      html = `
+        <div class="block-code">
+          <div class="block-code-header">
+            <span class="block-code-lang">${esc(lang)}</span>
+            <button class="block-code-copy-btn" onclick="copyCodeSnippet(event, this)">📋 Copy</button>
+          </div>
+          <pre><code>${esc(code)}</code></pre>
+        </div>
+      `;
+    }
+    else if (b.type === 'contact') {
+      html = `
+        <div class="block-contact-form" onclick="event.stopPropagation()">
+          <h4 style="margin:0 0 4px; font-size:14px; font-weight:700;">${esc(b.title || 'Send a Message')}</h4>
+          <input type="text" placeholder="Your Name" disabled style="cursor:not-allowed;">
+          <input type="email" placeholder="Your Email" disabled style="cursor:not-allowed;">
+          <textarea rows="3" placeholder="Your message..." disabled style="cursor:not-allowed;"></textarea>
+          <button class="block-contact-btn" disabled style="cursor:not-allowed;">${esc(b.btnText || 'Send Message')}</button>
+        </div>
+      `;
+    }
+    else if (b.type === 'github') {
+      const username = b.username || 'mhmeda3104-gif';
+      html = `
+        <div class="block-github-card">
+          <div class="block-github-header">
+            <svg width="24" height="24" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+            <div>
+              <a href="https://github.com/${esc(username)}" target="_blank" class="block-github-user">@${esc(username)}</a>
+              <div style="font-size:11px; color:#8b949e;">GitHub Developer Profile</div>
+            </div>
+          </div>
+          <div class="block-github-grid">
+            <div>
+              <div class="block-github-stat-num">24+</div>
+              <div class="block-github-stat-label">Repositories</div>
+            </div>
+            <div>
+              <div class="block-github-stat-num">120+</div>
+              <div class="block-github-stat-label">Contributions</div>
+            </div>
+            <div>
+              <div class="block-github-stat-num">5★</div>
+              <div class="block-github-stat-label">Stars</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    else if (b.type === 'faq') {
+      const items = b.items || [
+        { q: 'What engineering services do you provide?', a: 'Robotics design, Arduino/ESP32 programming, IoT dashboards, and circuit prototyping.' },
+        { q: 'How can we collaborate?', a: 'Send a message through the contact form or connect via GitHub/Instagram.' }
+      ];
+      const faqHtml = items.map((item, fIdx) => `
+        <div class="block-faq-item ${item.open ? 'open' : ''}" onclick="toggleFaqItem(event, '${b.id}', ${fIdx})">
+          <div class="block-faq-question">
+            <span>${esc(item.q)}</span>
+            <span style="font-size:12px;">${item.open ? '▲' : '▼'}</span>
+          </div>
+          <div class="block-faq-answer">${esc(item.a)}</div>
+        </div>
+      `).join('');
+      html = `<div class="block-faq-list">${faqHtml}</div>`;
+    }
     else if (b.type === 'gallery') {
       const cols = b.cols || 3;
       const imgs = b.images || ['logo.png', 'logo.png', 'logo.png'];
@@ -295,6 +406,25 @@ function renderCarrdCard() {
   });
 }
 
+function copyCodeSnippet(e, btn) {
+  e.stopPropagation();
+  const codeEl = btn.closest('.block-code').querySelector('code');
+  if (codeEl) {
+    navigator.clipboard.writeText(codeEl.innerText).then(() => {
+      btn.innerText = '✓ Copied';
+      setTimeout(() => btn.innerText = '📋 Copy', 2000);
+    });
+  }
+}
+
+function toggleFaqItem(e, blockId, itemIdx) {
+  e.stopPropagation();
+  const block = activeBlocks.find(b => b.id === blockId);
+  if (!block || !block.items || !block.items[itemIdx]) return;
+  block.items[itemIdx].open = !block.items[itemIdx].open;
+  renderCarrdCard();
+}
+
 // ===================== ELEMENT INTERACTION & SELECTION =====================
 
 function selectBlock(id) {
@@ -313,7 +443,7 @@ function openBlockDrawer(id) {
   const block = activeBlocks.find(b => b.id === id);
   if (!block) return;
 
-  closeDrawer(); // Close settings drawer if open
+  closeDrawer();
 
   const drawer = document.getElementById('carrdPropDrawer');
   const titleEl = document.getElementById('drawerTitle');
@@ -406,6 +536,101 @@ function getDrawerFormHtml(b) {
       </div>
     `;
   }
+  else if (b.type === 'status') {
+    return `
+      <div class="carrd-field">
+        <label>Status Text</label>
+        <input type="text" class="carrd-input" value="${esc(b.text || '')}" placeholder="🟢 Available for projects..." oninput="updateActiveBlockProp('text', this.value)">
+      </div>
+      <div class="carrd-field">
+        <label>Dot Color</label>
+        <input type="color" class="carrd-input" value="${b.dotColor || '#10b981'}" onchange="updateActiveBlockProp('dotColor', this.value)" style="height:38px; cursor:pointer;">
+      </div>
+      <div class="carrd-field">
+        <label>Alignment</label>
+        <div class="carrd-segmented-control">
+          <button class="${b.align==='left'?'active':''}" onclick="updateActiveBlockProp('align', 'left')">Left</button>
+          <button class="${b.align==='center'||!b.align?'active':''}" onclick="updateActiveBlockProp('align', 'center')">Center</button>
+          <button class="${b.align==='right'?'active':''}" onclick="updateActiveBlockProp('align', 'right')">Right</button>
+        </div>
+      </div>
+    `;
+  }
+  else if (b.type === 'skills') {
+    const items = b.items || [];
+    const itemsHtml = items.map((sk, idx) => `
+      <div style="background:#141722; padding:8px; border-radius:6px; margin-bottom:6px; position:relative;">
+        <button style="position:absolute; top:4px; right:4px; background:none; border:none; color:#ef4444; cursor:pointer;" onclick="removeSkillItem(${idx})">✕</button>
+        <input type="text" class="carrd-input" placeholder="Skill Name (e.g. Arduino)" value="${esc(sk.name)}" oninput="updateSkillItem(${idx}, 'name', this.value)" style="margin-bottom:4px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <input type="range" min="10" max="100" value="${sk.percent || 80}" oninput="updateSkillItem(${idx}, 'percent', this.value)" style="flex:1;">
+          <span style="font-size:12px; color:#94a3b8; width:35px;">${sk.percent || 80}%</span>
+        </div>
+      </div>
+    `).join('');
+    return `
+      <div class="carrd-field">
+        <label>Skills Progress List</label>
+        ${itemsHtml}
+        <button class="btn btn-ghost" style="width:100%; font-size:12px; padding:6px; border:1px dashed rgba(255,255,255,0.15);" onclick="addSkillItem()">+ Add Skill</button>
+      </div>
+    `;
+  }
+  else if (b.type === 'code') {
+    return `
+      <div class="carrd-field">
+        <label>Language</label>
+        <select class="carrd-select" onchange="updateActiveBlockProp('lang', this.value)">
+          <option value="cpp" ${b.lang==='cpp'?'selected':''}>C++ / Arduino</option>
+          <option value="python" ${b.lang==='python'?'selected':''}>Python</option>
+          <option value="javascript" ${b.lang==='javascript'?'selected':''}>JavaScript</option>
+          <option value="rust" ${b.lang==='rust'?'selected':''}>Rust</option>
+          <option value="json" ${b.lang==='json'?'selected':''}>JSON / Config</option>
+        </select>
+      </div>
+      <div class="carrd-field">
+        <label>Code Snippet</label>
+        <textarea class="carrd-textarea" rows="6" style="font-family:monospace; font-size:12px;" oninput="updateActiveBlockProp('code', this.value)">${esc(b.code || '')}</textarea>
+      </div>
+    `;
+  }
+  else if (b.type === 'github') {
+    return `
+      <div class="carrd-field">
+        <label>GitHub Username</label>
+        <input type="text" class="carrd-input" value="${esc(b.username || '')}" placeholder="username" oninput="updateActiveBlockProp('username', this.value)">
+      </div>
+    `;
+  }
+  else if (b.type === 'faq') {
+    const items = b.items || [];
+    const itemsHtml = items.map((it, idx) => `
+      <div style="background:#141722; padding:8px; border-radius:6px; margin-bottom:6px; position:relative;">
+        <button style="position:absolute; top:4px; right:4px; background:none; border:none; color:#ef4444; cursor:pointer;" onclick="removeFaqItem(${idx})">✕</button>
+        <input type="text" class="carrd-input" placeholder="Question" value="${esc(it.q)}" oninput="updateFaqItemField(${idx}, 'q', this.value)" style="margin-bottom:4px;">
+        <textarea class="carrd-textarea" rows="2" placeholder="Answer" oninput="updateFaqItemField(${idx}, 'a', this.value)">${esc(it.a)}</textarea>
+      </div>
+    `).join('');
+    return `
+      <div class="carrd-field">
+        <label>Questions & Answers</label>
+        ${itemsHtml}
+        <button class="btn btn-ghost" style="width:100%; font-size:12px; padding:6px; border:1px dashed rgba(255,255,255,0.15);" onclick="addFaqItem()">+ Add Q&A Item</button>
+      </div>
+    `;
+  }
+  else if (b.type === 'contact') {
+    return `
+      <div class="carrd-field">
+        <label>Form Title</label>
+        <input type="text" class="carrd-input" value="${esc(b.title || '')}" placeholder="Send a Message" oninput="updateActiveBlockProp('title', this.value)">
+      </div>
+      <div class="carrd-field">
+        <label>Submit Button Text</label>
+        <input type="text" class="carrd-input" value="${esc(b.btnText || '')}" placeholder="Send Message" oninput="updateActiveBlockProp('btnText', this.value)">
+      </div>
+    `;
+  }
   else if (b.type === 'buttons') {
     const btns = b.buttons || [];
     const btnsHtml = btns.map((btn, idx) => `
@@ -469,14 +694,6 @@ function getDrawerFormHtml(b) {
       </div>
     `;
   }
-  else if (b.type === 'icons') {
-    return `
-      <div class="carrd-field">
-        <label>Social Icons</label>
-        <p style="font-size:12px; color:#94a3b8; margin:0;">Displays your connected social profiles.</p>
-      </div>
-    `;
-  }
   return '';
 }
 
@@ -494,9 +711,63 @@ function handleImageFileUpload(e) {
   const reader = new FileReader();
   reader.onload = (event) => {
     updateActiveBlockProp('url', event.target.result);
-    openBlockDrawer(selectedBlockId); // refresh preview in drawer
+    openBlockDrawer(selectedBlockId);
   };
   reader.readAsDataURL(file);
+}
+
+function addSkillItem() {
+  if (!selectedBlockId) return;
+  const block = activeBlocks.find(b => b.id === selectedBlockId);
+  if (!block) return;
+  if (!block.items) block.items = [];
+  block.items.push({ name: 'New Skill', percent: 80 });
+  renderCarrdCard();
+  openBlockDrawer(selectedBlockId);
+}
+
+function removeSkillItem(idx) {
+  if (!selectedBlockId) return;
+  const block = activeBlocks.find(b => b.id === selectedBlockId);
+  if (!block || !block.items) return;
+  block.items.splice(idx, 1);
+  renderCarrdCard();
+  openBlockDrawer(selectedBlockId);
+}
+
+function updateSkillItem(idx, prop, value) {
+  if (!selectedBlockId) return;
+  const block = activeBlocks.find(b => b.id === selectedBlockId);
+  if (!block || !block.items || !block.items[idx]) return;
+  block.items[idx][prop] = prop === 'percent' ? parseInt(value) : value;
+  renderCarrdCard();
+}
+
+function addFaqItem() {
+  if (!selectedBlockId) return;
+  const block = activeBlocks.find(b => b.id === selectedBlockId);
+  if (!block) return;
+  if (!block.items) block.items = [];
+  block.items.push({ q: 'New Question?', a: 'Write the answer here.' });
+  renderCarrdCard();
+  openBlockDrawer(selectedBlockId);
+}
+
+function removeFaqItem(idx) {
+  if (!selectedBlockId) return;
+  const block = activeBlocks.find(b => b.id === selectedBlockId);
+  if (!block || !block.items) return;
+  block.items.splice(idx, 1);
+  renderCarrdCard();
+  openBlockDrawer(selectedBlockId);
+}
+
+function updateFaqItemField(idx, prop, value) {
+  if (!selectedBlockId) return;
+  const block = activeBlocks.find(b => b.id === selectedBlockId);
+  if (!block || !block.items || !block.items[idx]) return;
+  block.items[idx][prop] = value;
+  renderCarrdCard();
 }
 
 function addButtonToActiveBlock() {
@@ -588,6 +859,27 @@ function insertNewElement(type) {
     newBlock.buttons = [{ title: 'Get Started', url: 'https://', style: 'solid' }];
     newBlock.layout = 'column';
     newBlock.align = 'center';
+  } else if (type === 'status') {
+    newBlock.text = '🟢 Open for freelance & projects';
+    newBlock.dotColor = '#10b981';
+    newBlock.align = 'center';
+  } else if (type === 'skills') {
+    newBlock.items = [
+      { name: 'Robotics & Microcontrollers', percent: 90 },
+      { name: 'Embedded C & Python', percent: 85 }
+    ];
+  } else if (type === 'code') {
+    newBlock.lang = 'cpp';
+    newBlock.code = '// ESTL Robotics Code\nvoid setup() {\n  Serial.begin(115200);\n}';
+  } else if (type === 'contact') {
+    newBlock.title = 'Get in Touch';
+    newBlock.btnText = 'Send Message';
+  } else if (type === 'github') {
+    newBlock.username = (profileData.social && profileData.social.github) ? profileData.social.github.split('/').pop() : 'mhmeda3104-gif';
+  } else if (type === 'faq') {
+    newBlock.items = [
+      { q: 'What hardware platforms do you work with?', a: 'ESP32, Arduino, STM32, and Raspberry Pi.' }
+    ];
   } else if (type === 'gallery') {
     newBlock.cols = 3;
     newBlock.images = ['logo.png', 'logo.png', 'logo.png'];
@@ -603,6 +895,120 @@ function insertNewElement(type) {
   pushHistory();
   renderCarrdCard();
   selectBlock(newId);
+}
+
+// ===================== TEMPLATES PRESET SYSTEM =====================
+
+function openTemplatesModal() {
+  closeDrawer();
+  document.getElementById('carrdTemplatesModal').classList.add('show');
+}
+
+function closeTemplatesModal(e) {
+  if (e && e.target && e.target.id !== 'carrdTemplatesModal' && !e.target.closest('button')) return;
+  document.getElementById('carrdTemplatesModal').classList.remove('show');
+}
+
+function applyStarterPreset(presetKey) {
+  closeTemplatesModal();
+
+  if (presetKey === 'robotics') {
+    pageSettings = {
+      siteTitle: 'Robotics & Hardware Lab',
+      cardWidth: '760px',
+      cardRadius: '12px',
+      cardBg: '#ffffff',
+      bg: '#0f172a',
+      primary: '#2563eb',
+      font: 'Inter, sans-serif'
+    };
+    activeBlocks = [
+      { id: genId('sts'), type: 'status', text: '🟢 Designing Robotics & IoT Kits', dotColor: '#10b981', align: 'center' },
+      { id: genId('img'), type: 'image', url: profileData.photoURL || 'logo.png', size: 'avatar', radius: 'circle', align: 'center' },
+      { id: genId('txt'), type: 'text', content: profileData.name || 'Robotics Engineer', style: 'h1', align: 'center' },
+      { id: genId('txt'), type: 'text', content: 'Specialized in Autonomous Rover Firmware, ROS2, and PCB Hardware Prototyping.', style: 'body', align: 'center' },
+      { id: genId('skl'), type: 'skills', items: [
+        { name: 'C++ & Embedded Systems', percent: 95 },
+        { name: 'ROS2 & Micro-ROS', percent: 85 },
+        { name: 'KiCAD & Hardware Prototyping', percent: 90 }
+      ]},
+      { id: genId('cde'), type: 'code', lang: 'cpp', code: '// Motor Controller Interrupt Driver\nvoid IRAM_ATTR onEncoderTick() {\n  encoderCount++;\n}' },
+      { id: genId('btn'), type: 'buttons', buttons: [
+        { title: 'Explore Store Components', url: 'shop.html', style: 'solid' },
+        { title: 'View GitHub Projects', url: 'https://github.com', style: 'outline' }
+      ], layout: 'row', align: 'center' }
+    ];
+  }
+  else if (presetKey === 'minimal_bio') {
+    pageSettings = {
+      siteTitle: 'My Social Bio',
+      cardWidth: '540px',
+      cardRadius: '16px',
+      cardBg: '#ffffff',
+      bg: '#f8fafc',
+      primary: '#09090b',
+      font: 'Inter, sans-serif'
+    };
+    activeBlocks = [
+      { id: genId('img'), type: 'image', url: profileData.photoURL || 'logo.png', size: 'avatar', radius: 'circle', align: 'center' },
+      { id: genId('txt'), type: 'text', content: profileData.name || 'Alex Morgan', style: 'h1', align: 'center' },
+      { id: genId('txt'), type: 'text', content: '@' + (profileData.username || 'engineer') + ' • Maker & Tech Enthusiast', style: 'h3', align: 'center' },
+      { id: genId('btn'), type: 'buttons', buttons: [
+        { title: 'Instagram Profile', url: 'https://instagram.com', style: 'solid' },
+        { title: 'YouTube Tutorials', url: 'https://youtube.com', style: 'outline' },
+        { title: 'GitHub Open Source', url: 'https://github.com', style: 'outline' }
+      ], layout: 'column', align: 'center' }
+    ];
+  }
+  else if (presetKey === 'corporate') {
+    pageSettings = {
+      siteTitle: 'Engineering Consultant',
+      cardWidth: '720px',
+      cardRadius: '8px',
+      cardBg: '#ffffff',
+      bg: '#e2e8f0',
+      primary: '#1d4ed8',
+      font: 'Inter, sans-serif'
+    };
+    activeBlocks = [
+      { id: genId('sts'), type: 'status', text: '⚡ Available for Corporate Consulting', dotColor: '#3b82f6', align: 'left' },
+      { id: genId('txt'), type: 'text', content: profileData.name || 'ESTL Senior Engineer', style: 'h1', align: 'left' },
+      { id: genId('txt'), type: 'text', content: 'Delivering end-to-end industrial automation and firmware architecture for cutting-edge electronics.', style: 'body', align: 'left' },
+      { id: genId('dvd'), type: 'divider', style: 'line' },
+      { id: genId('faq'), type: 'faq', items: [
+        { q: 'What is the consulting engagement process?', a: 'Initial architecture review, milestone-based hardware prototyping, and production verification.' },
+        { q: 'Do you offer on-site workshops?', a: 'Yes, both remote and on-site engineering training sessions.' }
+      ]},
+      { id: genId('cnt'), type: 'contact', title: 'Schedule a Consultation', btnText: 'Send Inquiry' }
+    ];
+  }
+  else if (presetKey === 'developer') {
+    pageSettings = {
+      siteTitle: 'Fullstack Maker',
+      cardWidth: '780px',
+      cardRadius: '10px',
+      cardBg: '#ffffff',
+      bg: '#09090b',
+      primary: '#3b82f6',
+      font: 'Inter, sans-serif'
+    };
+    activeBlocks = [
+      { id: genId('img'), type: 'image', url: profileData.photoURL || 'logo.png', size: 'avatar', radius: 'circle', align: 'center' },
+      { id: genId('txt'), type: 'text', content: profileData.name || 'Open Source Dev', style: 'h1', align: 'center' },
+      { id: genId('gth'), type: 'github', username: (profileData.social && profileData.social.github) ? profileData.social.github.split('/').pop() : 'mhmeda3104-gif' },
+      { id: genId('skl'), type: 'skills', items: [
+        { name: 'JavaScript & Node.js', percent: 90 },
+        { name: 'Firebase & Realtime Sync', percent: 95 }
+      ]},
+      { id: genId('cnt'), type: 'contact', title: 'Send Direct Message', btnText: 'Submit' }
+    ];
+  }
+
+  initPageSettingsInputs();
+  applyPageSettings(pageSettings);
+  pushHistory();
+  renderCarrdCard();
+  showToast('Template applied successfully!', 'success');
 }
 
 // ===================== PAGE SETTINGS =====================
@@ -637,30 +1043,6 @@ function applyPageSettings(s) {
   if (s.font) root.style.setProperty('font-family', s.font);
 }
 
-function resetToCarrdStarter() {
-  if (confirm('Reset your canvas to the blank Carrd starter layout?')) {
-    activeBlocks = [
-      {
-        id: genId('txt'),
-        type: 'text',
-        content: 'My Untitled Site',
-        style: 'h1',
-        align: 'left'
-      },
-      {
-        id: genId('txt'),
-        type: 'text',
-        content: "There's nothing here yet (well, except for this message), but clicking on the \"+\" button in the menu above should change that. Have fun! :)",
-        style: 'body',
-        align: 'left'
-      }
-    ];
-    pushHistory();
-    renderCarrdCard();
-    closeDrawer();
-  }
-}
-
 // ===================== MOBILE PREVIEW & PUBLISH =====================
 
 function toggleMobilePreview() {
@@ -668,7 +1050,7 @@ function toggleMobilePreview() {
   document.body.classList.toggle('mobile-preview-mode');
   btn.classList.toggle('active');
   const isMobile = document.body.classList.contains('mobile-preview-mode');
-  showToast(isMobile ? 'Mobile Preview Mode (375px)' : 'Desktop View', 'info');
+  showToast(isMobile ? 'Mobile View (375px)' : 'Desktop View', 'info');
 }
 
 function saveAndPublish() {
@@ -680,7 +1062,7 @@ function saveAndPublish() {
   }).then(() => {
     const portfolioUrl = window.location.origin + '/portfolio.html?id=' + targetUid;
     navigator.clipboard.writeText(portfolioUrl).then(() => {
-      showToast('Published! Public portfolio link copied to clipboard 🔗', 'success');
+      showToast('Published! Public link copied to clipboard 🔗', 'success');
     }).catch(() => {
       showToast('Published successfully!', 'success');
     });
